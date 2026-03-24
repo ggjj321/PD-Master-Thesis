@@ -1,13 +1,125 @@
 % !TeX root = ../main.tex
 
-\chapter{Results}
+\chapter{Results and Discussion}
 
-\section{出師表}
+\newcolumntype{Y}{>{\centering\arraybackslash}p{0.18\linewidth}}
 
-\lipsum
+\section{Binary Classification Based on Thumb Fingertip Features}
 
-\section{短歌行}
+\begin{table}[htbp]
+	\centering
+	\caption{Comparison of three models on thumb fingertip feature-based binary classification}
+	\label{tab:thumb_model_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.60 / 0.56 \\
+		Random Forest       & 0.77 / 0.69 & 0.74 / 0.70 & 0.65 / 0.49 \\
+		XGBoost             & 0.77 / 0.60 & 0.72 / 0.71 & 0.62 / 0.41 \\
+		\hline
+	\end{tabularx}
+\end{table}
 
-\lipsum
+\section{Binary Classification Using Machine Learning on Bilateral Hand Joint Features}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Comparison of three models on bilateral hand joint feature-based binary classification}
+	\label{tab:bilateral_model_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		Logistic Regression & 0.80 / 0.66 & 0.79 / 0.76 & 0.66 / 0.48 \\
+		Random Forest       & 0.81 / 0.71 & 0.72 / 0.71 & 0.65 / 0.51 \\
+		XGBoost             & 0.77 / 0.62 & 0.74 / 0.73 & 0.61 / 0.46 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\section{Feature Selection on Bilateral Hand Joint Features Combined with XGBoost for Binary Classification}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Comparison of feature selection methods combined with XGBoost on bilateral hand joint features}
+	\label{tab:fs_xgb_bilateral_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		SelectKBest + XGBoost    & 0.74 / 0.62 & 0.76 / 0.48 & 0.64 / 0.45 \\
+		Logistic L1 + XGBoost    & 0.74 / 0.57 & 0.80 / 0.62 & 0.61 / 0.43 \\
+		XGB Importance + XGBoost & 0.74 / 0.69 & 0.78 / 0.72 & 0.60 / 0.54 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+
+\section{Feature Selection on Left and Right Hand Features with Individual XGBoost-Based Binary Classification}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Right-hand only results: comparison of feature selection methods combined with XGBoost}
+	\label{tab:fs_xgb_right_hand_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		SelectKBest + XGBoost    & 0.57 / 0.67 & 0.66 / 0.69 & 0.40 / 0.45 \\
+		Logistic L1 + XGBoost    & 0.70 / 0.77 & 0.70 / 0.64 & 0.55 / 0.53 \\
+		XGB Importance + XGBoost & 0.68 / 0.56 & 0.68 / 0.70 & 0.53 / 0.36 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Left-hand only results: comparison of feature selection methods combined with XGBoost}
+	\label{tab:fs_xgb_left_hand_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		SelectKBest + XGBoost    & 0.53 / 0.74 & 0.62 / 0.76 & 0.39 / 0.64 \\
+		Logistic L1 + XGBoost    & 0.63 / 0.78 & 0.70 / 0.79 & 0.44 / 0.66 \\
+		XGB Importance + XGBoost & 0.75 / 0.76 & 0.80 / 0.81 & 0.63 / 0.65 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\section{Binary Classification Using Graph Convolutional Networks}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Comparison of block designs and models for graph-based binary classification (2020/2025)}
+	\label{tab:gcn_block_model_comparison}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+		\hline
+		Separate Block Logistic Regression & 0.98 / 0.97 & 0.90 / 0.92 & 0.84 / 0.81 \\
+		Separate Block XGBoost             & 0.87 / 0.78 & 0.83 / 0.82 & 0.69 / 0.59 \\
+		Separate Block Random Forest       & 0.92 / 0.84 & 0.86 / 0.84 & 0.75 / 0.60 \\
+		Same Block Logistic Regression     & 0.98 / 0.97 & 0.89 / 0.92 & 0.80 / 0.82 \\
+		Same Block XGBoost                 & 0.89 / 0.76 & 0.85 / 0.84 & 0.73 / 0.60 \\
+		Same Block Random Forest           & 0.92 / 0.83 & 0.85 / 0.86 & 0.71 / 0.62 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+
 
 This is just to test \cite{Krasnogor2004e} the cite function.
