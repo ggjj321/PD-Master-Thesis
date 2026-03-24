@@ -221,8 +221,7 @@
 \newcommand\ntu@date@zh@short[3]{\zhdigits{#1}年\zhnumber{#2}月}
 \newcommand\ntu@date@zh@digit[3]{\the\numexpr#1-1911\relax~年~\number#2~月~\number#3~日}
 \newcommand\ntu@date@zh@digit@short[3]{\the\numexpr#1-1911\relax~年~\number#2~月}
-\newcommand\ntu@date@en@short[3]{\monthname[#2], #1}  % 英文月年之間無逗號
-\newcommand\ntu@date@en@short[3]{\monthname[#2] #1}   % 英文月年之間有逗號
+\newcommand\ntu@date@en@short[3]{\monthname[#2], #1}  % 英文月年之間有逗號
 
 \newcommand{\ntu@setgeometry}[1]{\expandafter\newgeometry\expandafter{#1}}
 
@@ -683,7 +682,6 @@
         \begin{tikzpicture}[remember picture, overlay]
           \coordinate (WM) at ([xshift=-4.325cm, yshift=-4.325cm] current page.north east);
           \node [scale=1] at (WM) {\includegraphics[width=3.65cm, height=3.65cm]{#2}};
-          \filldraw [fill=white, opacity=1-\the\numexpr#1] (current page.north east) rectangle (current page.south west);
         \end{tikzpicture}
       \vfill
 }}}}
@@ -925,7 +923,7 @@
 % 根據設定決定是否添加浮水印
 % Insert watermark according to the config.
 %
-\ifthenelse{\equal{\ntu@watermark}{true}}{\makewatermark{0.25}{seal}}{}
+\ifthenelse{\equal{\ntu@watermark}{true}}{\makewatermark{0.25}{seal-watermark.jpg}}{}
 
 % 根據設定決定是否添加數位標識
 % Insert DOI according to the config.
