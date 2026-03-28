@@ -6,6 +6,10 @@
 
 \section{Binary Classification Based on Thumb Fingertip Features}
 
+\subsection{Experimental Results}
+
+Table \ref{tab:thumb_model_comparison} presents the comparison of three models on thumb fingertip feature-based binary classification. Additionally, Figure \ref{fig:thumb_roc_comparison} displays the ROC curves of binary classification models using thumb fingertip features across different evaluation scenarios. Table \ref{tab:thumb_cross_dataset} provides the cross-dataset evaluation of performance on the 2025 dataset using models trained on the 2020 dataset for thumb fingertip features.
+
 \begin{table}[htbp]
 	\centering
 	\caption{Comparison of three models on thumb fingertip feature-based binary classification}
@@ -18,12 +22,63 @@
 		\hline
 		Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.60 / 0.56 \\
 		Random Forest       & 0.77 / 0.69 & 0.74 / 0.70 & 0.65 / 0.49 \\
-		XGBoost             & 0.77 / 0.60 & 0.72 / 0.71 & 0.62 / 0.41 \\
+		XGBoost             & 0.77 / 0.61 & 0.72 / 0.71 & 0.62 / 0.41 \\
 		\hline
 	\end{tabularx}
 \end{table}
 
+\begin{figure}[htbp]
+    \centering
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/2020_joint4.png}
+        \caption{2020 Dataset (LOOCV)}
+        \label{fig:thumb_roc_2020}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/2025_joint4.png}
+        \caption{2025 Dataset (LOOCV)}
+        \label{fig:thumb_roc_2025}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/cross_joint4.png}
+        \caption{Cross-Dataset Result}
+        \label{fig:thumb_roc_cross}
+    \end{subfigure}
+    \caption{ROC curves of binary classification models using thumb fingertip features across different evaluation scenarios.}
+    \label{fig:thumb_roc_comparison}
+\end{figure}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset for thumb fingertip features}
+	\label{tab:thumb_cross_dataset}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & AUROC & Accuracy & F1-score \\
+		\hline
+		Logistic Regression & 0.63 & 0.64 & 0.52 \\
+		Random Forest       & 0.70 & 0.80 & 0.52 \\
+		XGBoost             & 0.71 & 0.70 & 0.50 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Observations}
+
+Based on the results presented in Table \ref{tab:thumb_model_comparison} and the ROC curves in Figure \ref{fig:thumb_roc_comparison}(a) and (b), in the 2020 dataset, tree-based models such as Random Forest and XGBoost demonstrated superior discriminative power, both achieving an AUROC of 0.77. However, evaluated on the 2025 dataset, Logistic Regression proved more resilient, securing the highest accuracy (0.77) and F1-score (0.56). This shift indicates that simpler linear models may provide better cross-dataset stability, whereas complex tree models suffer from significant performance degradation.
+
+Furthermore, Table \ref{tab:thumb_cross_dataset} and Figure \ref{fig:thumb_roc_comparison}(c) illustrate the results of explicit cross-cohort evaluation (trained on 2020, tested on 2025). While Random Forest achieved the highest accuracy (0.80), its discriminative balance remained limited (F1-score of 0.52). XGBoost provided the highest AUROC (0.71), suggesting it yields better instance ranking despite lower absolute recall. In contrast to internal validation, Logistic Regression struggled in this direct transfer scenario, indicating that linear assumptions may be insufficient for generalizing complex fingertip patterns across distinct temporal cohorts.
+
+
 \section{Binary Classification Using Machine Learning on Bilateral Hand Joint Features}
+
+\subsection{Experimental Results}
+
+Table \ref{tab:bilateral_model_comparison} presents the comparison of three models on bilateral hand joint feature-based binary classification. Additionally, Table \ref{tab:bilateral_cross_dataset} shows the cross-dataset evaluation of performance on the 2025 dataset using models trained on the 2020 dataset for bilateral hand joint features.
 
 \begin{table}[htbp]
 	\centering
@@ -42,7 +97,34 @@
 	\end{tabularx}
 \end{table}
 
+\begin{table}[htbp]
+	\centering
+	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset for bilateral hand joint features}
+	\label{tab:bilateral_cross_dataset}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & AUROC & Accuracy & F1-score \\
+		\hline
+		Logistic Regression & 0.50 & 0.70 & 0.40 \\
+		Random Forest       & 0.68 & 0.70 & 0.49 \\
+		XGBoost             & 0.69 & 0.62 & 0.49 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Observations}
+
+Based on the results of utilizing bilateral hand joint features across three machine learning models shown in Table \ref{tab:bilateral_model_comparison}, Random Forest and Logistic Regression achieved strong results on the 2020 dataset, with AUROCs of 0.81 and 0.80, respectively. Logistic Regression led in accuracy (0.79) and F1-score (0.66), suggesting that a balance of features from both hands is well-suited to linear classification. When evaluating the 2025 dataset, Random Forest emerged as the most resilient model, maintaining a stable accuracy of 0.71 and yielding the highest AUROC (0.71), whereas Logistic Regression, despite holding a high accuracy (0.76), saw sharp declines in predictive balance. Overall, tree-based models like Random Forest demonstrated superior robustness in generalizing bilateral features across distinct cohorts.
+
+The cross-dataset performance in Table \ref{tab:bilateral_cross_dataset} shows a similar trend where tree-based models (XGBoost and Random Forest) outperform Logistic Regression in terms of AUROC (0.69 and 0.68 respectively) when trained on 2020 and tested on 2025. Although Logistic Regression maintained a competitive accuracy of 0.70, its AUROC dropped to 0.50, indicating a loss in its ability to differentiate between classes in a new temporal cohort compared to tree-based models.
+
 \section{Feature Selection on Bilateral Hand Joint Features Combined with XGBoost for Binary Classification}
+
+\subsection{Experimental Results}
+
+Table \ref{tab:fs_xgb_bilateral_comparison} shows the comparison of feature selection methods combined with XGBoost on bilateral hand joint features. Furthermore, Table \ref{tab:fs_bilateral_cross_dataset} presents the cross-dataset evaluation results for these feature selection methods.
 
 \begin{table}[htbp]
 	\centering
@@ -61,8 +143,35 @@
 	\end{tabularx}
 \end{table}
 
+\begin{table}[htbp]
+	\centering
+	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset with feature selection on bilateral features}
+	\label{tab:fs_bilateral_cross_dataset}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & AUROC & Accuracy & F1-score \\
+		\hline
+		SelectKBest + XGBoost    & 0.68 & 0.73 & 0.47 \\
+		Logistic L1 + XGBoost    & 0.68 & 0.65 & 0.50 \\
+		XGB Importance + XGBoost & 0.65 & 0.79 & 0.47 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Observations}
+
+Based on the impact of various feature selection strategies paired with the XGBoost classifier detailed in Table \ref{tab:fs_xgb_bilateral_comparison}, while all methods (SelectKBest, Logistic L1, and XGB Importance) yielded a consistent AUROC of 0.74 on the 2020 dataset, their performance diverged significantly on the 2025 cohort. XGB Importance demonstrated superior generalization, achieving the highest AUROC (0.69), accuracy (0.72), and F1-score (0.54). 
+
+The cross-dataset results in Table \ref{tab:fs_bilateral_cross_dataset} further reveal that tree-based feature selection (XGB Importance) paired with XGBoost can reach a high accuracy of 0.79 on the 2025 dataset when trained on 2020 data. SelectKBest and Logistic L1 also maintain respectable AUROCs of 0.68, though Logistic L1 achieves a slightly better F1-score (0.50). These results underscore that tree-based feature selection can be quite effective for ensuring accuracy in cross-dataset robustness, even if discriminative ranking power (AUROC) varies.
+
 
 \section{Feature Selection on Left and Right Hand Features with Individual XGBoost-Based Binary Classification}
+
+\subsection{Experimental Results}
+
+Table \ref{tab:fs_xgb_right_hand_comparison} shows the right-hand only results: comparison of feature selection methods combined with XGBoost, while Table \ref{tab:fs_xgb_left_hand_comparison} presents the left-hand only results: comparison of feature selection methods combined with XGBoost. Finally, Table \ref{tab:fs_lr_hand_cross_dataset} summarizes the cross-dataset evaluation for both hands.
 
 \begin{table}[htbp]
 	\centering
@@ -98,7 +207,38 @@
 	\end{tabularx}
 \end{table}
 
+\begin{table}[htbp]
+	\centering
+	\caption{Cross-dataset evaluation: comparison of feature selection on right and left hand features trained on 2020 and tested on 2025}
+	\label{tab:fs_lr_hand_cross_dataset}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedleft\arraybackslash}p{0.15\linewidth}XYYY}
+		\hline
+		& Model & AUROC & Accuracy & F1-score \\
+		\hline
+		\multirow{3}{*}{Right Hand} & SelectKBest + XGBoost    & 0.68 & 0.57 & 0.47 \\
+		& Logistic L1 + XGBoost    & 0.62 & 0.65 & 0.42 \\
+		& XGB Importance + XGBoost & 0.65 & 0.46 & 0.46 \\
+		\hline
+		\multirow{3}{*}{Left Hand} & SelectKBest + XGBoost    & 0.68 & 0.74 & 0.47 \\
+		& Logistic L1 + XGBoost    & 0.63 & 0.74 & 0.46 \\
+		& XGB Importance + XGBoost & 0.66 & 0.67 & 0.48 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Observations}
+
+Based on the comparative analysis of left and right hand features using XGBoost summarized in Tables \ref{tab:fs_xgb_right_hand_comparison} and \ref{tab:fs_xgb_left_hand_comparison}, models trained on left-hand features consistently outperformed their right-hand counterparts in both cohorts. Notably, the left-hand model using XGB Importance achieved a highly stable AUROC of 0.75--0.76 and maintained the highest accuracy (0.80--0.81). 
+
+The cross-dataset evaluation in Table \ref{tab:fs_lr_hand_cross_dataset} reinforces the superiority of left-hand features for generalization. Across all feature selection methods, the left-hand models consistently achieved higher accuracy ($\sim$0.74 for SelectKBest and Logistic L1) compared to the right-hand models (down to 0.46 for XGB Importance). While AUROC values remained relatively consistent around 0.62--0.68 for both hands, the significantly higher accuracy and more stable F1-scores on the left hand suggest that it provides more robust motor indicators for binary classification when transferring from the 2020 cohort to the 2025 cohort.
+
 \section{Binary Classification Using Graph Convolutional Networks}
+
+\subsection{Experimental Results}
+
+Table \ref{tab:gcn_block_model_comparison} details the comparison of block designs and models for graph-based binary classification (2020/2025). Furthermore, Table \ref{tab:gcn_cross_dataset} provides the cross-dataset evaluation of graph-based models.
 
 \begin{table}[htbp]
 	\centering
@@ -119,6 +259,32 @@
 		\hline
 	\end{tabularx}
 \end{table}
+
+\begin{table}[htbp]
+	\centering
+	\caption{Cross-dataset evaluation: comparison of GCN block designs and models trained on 2020 and tested on 2025}
+	\label{tab:gcn_cross_dataset}
+		\small
+		\setlength{\tabcolsep}{4pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+		\hline
+		Model & AUROC & Accuracy & F1-score \\
+		\hline
+		Separate Block Logistic Regression & 0.53 & 0.58 & 0.40 \\
+		Separate Block XGBoost             & 0.58 & 0.64 & 0.39 \\
+		Separate Block Random Forest       & 0.58 & 0.58 & 0.41 \\
+		Same Block Logistic Regression     & 0.59 & 0.57 & 0.45 \\
+		Same Block XGBoost                 & 0.62 & 0.64 & 0.44 \\
+		Same Block Random Forest           & 0.61 & 0.59 & 0.43 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+\subsection{Observations}
+
+Based on the classification performance using features derived from Graph Convolutional Networks (GCN) detailed in Table \ref{tab:gcn_block_model_comparison}, results reached near-optimal levels under internal/external validation, with Logistic Regression achieving an AUROC of 0.98/0.97 across cohorts. 
+
+However, the explicit cross-dataset results in Table \ref{tab:gcn_cross_dataset} show a significant performance drop compared to internal validation. The AUROC values lie between 0.53 and 0.62, with XGBoost integrated into the Same Block design achieving the highest AUROC (0.62) and Accuracy (0.64). The sharp decline in F1-scores ($\sim$0.40) and AUROC compared to the internal splits suggests that while GCNs are extremely powerful within a dataset, the structural features extracted may be sensitive to shifts in the data distribution between the 2020 and 2025 collection periods, requiring potentially more robust feature alignment or domain adaptation strategies for direct cross-dataset transfer.
 
 
 
