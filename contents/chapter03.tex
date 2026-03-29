@@ -2,10 +2,134 @@
 
 \chapter{Methods}
 
-\section{史記}
+\section{Overview}
 
-\zhlipsum[name=xiangyu]
+The proposed pipeline converts raw hand-movement videos into landmark sequences, derives hand-crafted kinematic descriptors, and performs classification using either conventional machine learning models or graph-based models. In the classification stage, PD stage 0 is treated as the healthy class and PD stages 1--4 are merged into the disease class.
 
-\section{山海經}
+\section{MediaPipe-Based Hand Landmark Extraction}
 
-\zhlipsum[name=nanshanjing]
+In this study, the MediaPipe Hands framework is employed to extract continuous hand landmarks from the recorded video sequences. To ensure robust spatial localization while mitigating computational overhead, the tracking model was instantiated with the predefined hyperparameters detailed in Table \ref{tab:mediapipe_params}. Focusing the detection scope strictly on a single hand (\texttt{max\_num\_hands=1}) per lateral processing stream prevents the erroneous indexing of extraneous background elements, while both detection and tracking confidence thresholds were set to 0.5 to balance localization sensitivity with false-positive rejection.
+
+\begin{table}[htbp]
+	\centering
+	\caption{Initialization hyperparameters for the MediaPipe Hands framework}
+	\label{tab:mediapipe_params}
+		\small
+		\setlength{\tabcolsep}{12pt}
+		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
+		\hline
+		Hyperparameter & Value \\
+		\hline
+		Maximum Number of Hands & 1 \\
+		Minimum Detection Confidence & 0.5 \\
+		Minimum Tracking Confidence & 0.5 \\
+		\hline
+	\end{tabularx}
+\end{table}
+
+For each valid frame, MediaPipe returns 21 landmarks with normalized coordinates $(x,y,z)$, yielding a $21 \times 3$ hand skeleton per frame. Frames without valid detections are represented as zeros in the exported sequence. Each video is saved as a \texttt{.pt} file containing the temporal skeleton sequence together with metadata including patient identifier, recording date, view label, and PD stage. Left- and right-hand recordings are processed separately and paired at the patient level.
+
+\section{Time-Series Feature Extraction}
+
+\subsection{Patient-Level Pairing and Normalization}
+
+For each patient, the left- and right-hand sequences are represented as tensors of shape $(T, 21, 3)$, where $T$ denotes the number of frames. Amplitude-related features are normalized by the median Euclidean distance between landmark 0 (wrist) and landmark 9 (middle-finger MCP), thereby reducing variation due to hand size and camera scale.
+
+\subsection{Autocorrelation-Based Frequency and Clarity}
+
+For each hand, joint, and spatial axis, the coordinate trajectory is treated as a one-dimensional signal $s(t)$. Two autocorrelation variants are computed:
+
+\begin{enumerate}
+    \item raw autocorrelation, and
+    \item detrended autocorrelation after removal of a degree-10 polynomial trend.
+\end{enumerate}
+
+The signal is mean-centered before autocorrelation is computed. Let $\tau$ denote the lag of the first positive-lag peak. The corresponding movement frequency is estimated as
+\begin{equation}
+    f = \frac{f_s}{\tau},
+\end{equation}
+where $f_s=60$ Hz is the sampling rate. The clarity score is defined as the ratio between the first positive-lag peak and the zero-lag autocorrelation value. Although both raw and detrended versions are computed, only the detrended descriptors are retained in the exported feature set:
+\begin{enumerate}
+    \item frequency without trend, and
+    \item clarity without trend.
+\end{enumerate}
+
+These descriptors characterize movement periodicity and rhythmic regularity.
+
+\subsection{Amplitude Features}
+
+In addition to frequency and clarity, four amplitude representations are computed for each trajectory after optional normalization and detrending:
+
+\begin{enumerate}
+    \item \textbf{Cycle amplitude}, defined from alternating peak-valley pairs;
+    \item \textbf{rolling peak-to-peak amplitude};
+    \item \textbf{rolling RMS amplitude}; and
+    \item \textbf{Hilbert amplitude}, obtained from the analytic signal.
+\end{enumerate}
+
+For each amplitude representation, three summary statistics are recorded: mean, median, and standard deviation. Consequently, each axis contributes $4 \times 3 = 12$ amplitude features.
+
+\subsection{Final Hand-Crafted Feature Set}
+
+Features are extracted from both hands, all 21 joints, and all three spatial axes. Each axis-specific trajectory contributes:
+
+\begin{enumerate}
+    \item 2 autocorrelation features: frequency without trend and clarity without trend; and
+    \item 12 amplitude statistics derived from cycle amplitude, rolling peak-to-peak amplitude, rolling RMS, and Hilbert amplitude.
+\end{enumerate}
+
+Thus, each trajectory contributes 14 features. The total dimensionality is
+\begin{equation}
+    2 \times 21 \times 3 \times 14 = 1764.
+\end{equation}
+
+The resulting feature table is stored together with patient metadata, including date, PD stage, medication status, and dataset source.
+
+\section{Feature Selection}
+
+Because the extracted feature space is high-dimensional relative to the cohort size, feature selection is performed within each training fold. Three strategies are considered.
+
+\subsection{ANOVA F-test via SelectKBest}
+
+The first method applies \texttt{SelectKBest} with \texttt{f\_classif}. After median imputation and standardization, features are ranked by the ANOVA F-statistic, and the top-$k$ features are retained.
+
+\subsection{L1-Regularized Logistic Regression}
+
+The second method uses L1-regularized logistic regression with \texttt{solver=liblinear}, \texttt{class\_weight=balanced}, and \texttt{C=0.5}. Features are ranked by the absolute coefficient magnitude, and the top-$k$ features are selected.
+
+\subsection{XGBoost Feature Importance}
+
+The third method fits an \texttt{XGBClassifier} on the training fold and ranks features according to gain-based importance. Class imbalance is handled by
+\begin{equation}
+    \texttt{scale\_pos\_weight}=\frac{N_{\text{negative}}}{N_{\text{positive}}}.
+\end{equation}
+The top-$k$ features are then used for downstream classification.
+
+\section{Adaptive Graph Convolutional Network}
+
+\subsection{Skeleton-Based AGCN}
+
+The skeleton-based AGCN represents each sample as a 42-node graph, with 21 nodes for the left hand and 21 nodes for the right hand. The graph follows the MediaPipe anatomical topology, including finger chains, palm connections, self-loops, and an inter-hand wrist connection. The input tensor has shape $(N, C, T, V)$, where $C=3$ denotes xyz coordinates and $V=42$.
+
+Each block combines graph convolution with temporal convolution. The spatial graph starts from a fixed adjacency matrix and is augmented by a learnable adaptive term:
+\begin{equation}
+    \mathbf{A}_{\text{eff}} = \mathbf{A}_{\text{base}} + \mathbf{B},
+\end{equation}
+where $\mathbf{A}_{\text{base}}$ is the normalized physical hand graph and $\mathbf{B}$ is trainable. An attention branch further modulates adjacency weights in a sample-dependent manner, allowing the model to preserve anatomical priors while learning task-specific joint relations.
+
+\subsection{FeatureAGCNStyle for Hand-Crafted Features}
+
+In addition to raw skeleton modeling, \texttt{FeatureAGCNStyle} treats the 1764-dimensional hand-crafted vector as a graph-structured representation. The feature vector is reshaped into 42 nodes, each corresponding to a left- or right-hand joint. Since
+\begin{equation}
+    1764 / 42 = 42,
+\end{equation}
+each node is represented by a 42-dimensional descriptor.
+
+The model first projects each node descriptor into a latent space and then performs graph propagation. Two adjacency construction modes are implemented:
+
+\begin{enumerate}
+    \item \textbf{Separate block}, where each graph block learns an independent adjacency perturbation; and
+    \item \textbf{Same block}, where adjacency is derived from transformation weights through a Mahalanobis-type distance and a Gaussian kernel.
+\end{enumerate}
+
+After graph propagation, node features are averaged across joints to form a global graph embedding. This embedding can be classified directly or exported for external classifiers such as XGBoost. Accordingly, the AGCN framework in this study serves both sequence-based skeleton modeling and graph-structured modeling of hand-crafted joint-wise features.
