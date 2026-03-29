@@ -10,7 +10,7 @@ The proposed pipeline converts raw hand-movement videos into landmark sequences,
 
 In this study, the MediaPipe Hands framework is employed to extract continuous hand landmarks from the recorded video sequences. To ensure robust spatial localization while mitigating computational overhead, the tracking model was instantiated with the predefined hyperparameters detailed in Table \ref{tab:mediapipe_params}. Focusing the detection scope strictly on a single hand (\texttt{max\_num\_hands=1}) per lateral processing stream prevents the erroneous indexing of extraneous background elements, while both detection and tracking confidence thresholds were set to 0.5 to balance localization sensitivity with false-positive rejection.
 
-\begin{table}[htbp]
+\begin{table}[H]
 	\centering
 	\caption{Initialization hyperparameters for the MediaPipe Hands framework}
 	\label{tab:mediapipe_params}

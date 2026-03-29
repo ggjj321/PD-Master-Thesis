@@ -47,7 +47,7 @@ Feature names are indexed by hand, joint, and axis, enabling the evaluation scri
 
 The classical machine-learning experiments were conducted utilizing the XGBoost (Extreme Gradient Boosting) algorithm. To ensure algorithmic reproducibility and to systematically constrain model complexity, the \texttt{XGBClassifier} was instantiated with the predefined hyperparameters outlined in Table \ref{tab:xgboost_params}. The relatively shallow tree architecture (\texttt{max\_depth = 3}) and controlled ensemble size (\texttt{n\_estimators = 50}) were purposefully chosen in order to mitigate overfitting risks during within-fold training.
 
-\begin{table}[htbp]
+\begin{table}[H]
 	\centering
 	\caption{Hyperparameter configuration for the XGBoost classifier}
 	\label{tab:xgboost_params}
@@ -85,7 +85,7 @@ Unless otherwise specified, the top 10 features are selected in each training fo
 
 The Adaptive Graph Convolutional Network (AGCN) framework was evaluated under two primary configurations: sequence-based skeleton modeling and static feature-based graph modeling. To ensure consistent baseline performance and stable gradient convergence, both configurations shared a common set of architectural hyperparameters and optimization objectives, which are meticulously compiled in Table \ref{tab:agcn_params}.
 
-\begin{table}[htbp]
+\begin{table}[H]
 	\centering
 	\caption{Architectural and optimization hyperparameters for the AGCN framework}
 	\label{tab:agcn_params}
