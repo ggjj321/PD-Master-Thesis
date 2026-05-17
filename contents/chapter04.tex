@@ -1,181 +1,150 @@
 % !TeX root = ../main.tex
 
-\chapter{Experimental Setup}
+\chapter{Dataset and Experimental Setup}
+\label{chap:setup}
 
-\section{Datasets and Labels}
+\section{NTUH Parkinson's Disease Outpatient Clinic Dataset}
+\label{sec:dataset}
 
-Two data sources are used: the 2020 cohort (\texttt{dataset\_source=old}) and the newer horizontal-view cohort (\texttt{dataset\_source=horizontal}). The merged feature table \texttt{extact\_feature\_latest.csv} contains 492 samples, including 271 old samples and 221 horizontal samples. Each record contains five metadata fields:
-\begin{enumerate}
-    \item \texttt{patient\_id},
-    \item \texttt{date},
-    \item \texttt{pd\_stage},
-    \item \texttt{on\_medication},
-    \item \texttt{dataset\_source}.
-\end{enumerate}
+This study uses a clinical dataset collected at the National Taiwan University Hospital (NTUH) Parkinson's Disease outpatient clinic in collaboration with Dr.~Lin Jing-Xian (林靜嫻). All recordings were captured as 2D videos using the camera of an ordinary smartphone or tablet, so that the resulting cohort is directly representative of the everyday-device scenario targeted by this thesis.
 
-For binary classification, stage 0 is defined as healthy, whereas stages 1--4 are grouped as disease. The evaluation scripts also support medication filtering; the principal setting in the codebase is \texttt{no\_medication}.
+The data come in two temporal cohorts. The \emph{2020 cohort} consists of recordings of variable length collected starting in 2020. The \emph{2025 cohort} consists of recordings standardized to a fixed length of 30 seconds, collected starting in 2025. Together with the medication status of each subject at recording time, these two cohorts form four sub-groups: 2020/on-medication, 2020/off-medication, 2025/on-medication, and 2025/off-medication.
 
-\section{Hand-Crafted Feature Composition}
-
-The final feature table contains 1764 numeric predictors and 5 metadata columns, for a total of 1769 columns. The predictor dimensionality is
-
-\begin{equation}
-    2\ \text{hands} \times 21\ \text{joints} \times 3\ \text{axes} \times 14\ \text{features per trajectory} = 1764.
-\end{equation}
-
-For each joint-axis trajectory, 14 descriptors are exported:
-\begin{enumerate}
-    \item frequency without trend,
-    \item clarity without trend,
-    \item cycle amplitude mean,
-    \item cycle amplitude median,
-    \item cycle amplitude standard deviation,
-    \item rolling peak-to-peak amplitude mean,
-    \item rolling peak-to-peak amplitude median,
-    \item rolling peak-to-peak amplitude standard deviation,
-    \item RMS amplitude mean,
-    \item RMS amplitude median,
-    \item RMS amplitude standard deviation,
-    \item Hilbert amplitude mean,
-    \item Hilbert amplitude median,
-    \item Hilbert amplitude standard deviation.
-\end{enumerate}
-
-Feature names are indexed by hand, joint, and axis, enabling the evaluation scripts to define bilateral, left-only, right-only, and left-right difference subsets.
-
-\section{Machine Learning Configuration}
-
-The classical machine-learning experiments were conducted utilizing the XGBoost (Extreme Gradient Boosting) algorithm. To ensure algorithmic reproducibility and to systematically constrain model complexity, the \texttt{XGBClassifier} was instantiated with the predefined hyperparameters outlined in Table \ref{tab:xgboost_params}. The relatively shallow tree architecture (\texttt{max\_depth = 3}) and controlled ensemble size (\texttt{n\_estimators = 50}) were purposefully chosen in order to mitigate overfitting risks during within-fold training.
+Table~\ref{tab:dataset_overview} contrasts the high-level properties of the two cohorts.
 
 \begin{table}[H]
-	\centering
-	\caption{Hyperparameter configuration for the XGBoost classifier}
-	\label{tab:xgboost_params}
-		\small
-		\setlength{\tabcolsep}{12pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
-		\hline
-		Hyperparameter & Value \\
-		\hline
-		Number of Estimators (\texttt{n\_estimators}) & 50 \\
-		Maximum Depth (\texttt{max\_depth}) & 3 \\
-		Learning Rate (\texttt{learning\_rate}) & 0.1 \\
-		Evaluation Metric (\texttt{eval\_metric}) & logloss \\
-		Random State (\texttt{random\_state}) & 42 \\
-		Number of Parallel Threads (\texttt{n\_jobs}) & 1 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{High-level comparison of the 2020 and 2025 cohorts}
+    \label{tab:dataset_overview}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.40\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Aspect & 2020 cohort & 2025 cohort \\
+        \hline
+        Video duration                          & Variable                & Fixed 30~s \\
+        Healthy:PD ratio under off-medication   & 7:3                     & 4:1 \\
+        Number of on-medication subjects        & 80                      & 103 \\
+        Number of off-medication subjects       & 192                     & 118 \\
+        \hline
+    \end{tabularx}
 \end{table}
 
-Class imbalance across training folds is dynamically addressed by rescaling the sample weights of the positive class. The rescaling factor is computed via:
+The detailed stage distribution of the two cohorts is shown in Table~\ref{tab:dataset_distribution}.
+
+\begin{table}[H]
+    \centering
+    \caption{Sample distribution by MDS-UPDRS stage and medication status for the two cohorts}
+    \label{tab:dataset_distribution}
+    \small
+    \setlength{\tabcolsep}{5pt}
+    \begin{tabularx}{\linewidth}{l l c c c c c c}
+        \hline
+        Cohort & Medication & Stage~0 & Stage~1 & Stage~2 & Stage~3 & Stage~4 & Total \\
+        \hline
+        \multirow{2}{*}{2020} & On  & 0   & 19 & 32 & 25 & 4 & 80  \\
+                                & Off & 135 & 13 & 27 & 16 & 1 & 192 \\
+        \hline
+        \multirow{2}{*}{2025} & On  & 1   & 39 & 34 & 20 & 9 & 103 \\
+                                & Off & 90  & 15 & 8  & 4  & 1 & 118 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Throughout this thesis, stage~0 is treated as the \emph{healthy} class and stages~1--4 are merged into the \emph{PD} class. To avoid confounding the underlying motor severity with the effect of levodopa therapy, all principal experiments restrict the analysis to off-medication recordings.
+
+\section{Experimental Roadmap}
+\label{sec:roadmap}
+
+Five experiments are conducted in this thesis, each motivated by a specific question about which features and which model family give the best PD-versus-healthy discrimination on the NTUH cohorts. Table~\ref{tab:roadmap} summarizes the roadmap.
+
+\begin{table}[H]
+    \centering
+    \caption{Experimental roadmap}
+    \label{tab:roadmap}
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.10\linewidth} >{\raggedright\arraybackslash}X}
+        \hline
+        Exp. & Question and configuration \\
+        \hline
+        1 & Binary classification using thumb-tip features versus all bilateral joint features, with Logistic Regression, Random Forest, and XGBoost as classifiers. \\
+        2 & On bilateral joint features, combine each of three feature-selection methods (ANOVA, L1-regularized Logistic Regression, XGBoost Importance) with XGBoost for binary classification. \\
+        3 & Repeat Exp.~2 but for left-hand-only and right-hand-only feature subsets, in order to expose any inter-hand asymmetry. \\
+        4 & Augment bilateral features with joint-wise pairwise correlation features and apply the three feature selection methods, again combined with XGBoost. \\
+        5 & Replace the hand-crafted pipeline with an adaptive graph convolutional network (AGCN) that learns joint-wise relationships directly. \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\section{Experimental Setting}
+\label{sec:exp_setting}
+
+\subsection*{Within-Cohort Validation: LOOCV}
+
+Within a single cohort, validation is performed with Leave-One-Out Cross-Validation (LOOCV). For Experiments~2 and~3, feature selection is re-run on the training fold of \emph{every} LOOCV iteration, so that no information from the held-out subject can leak into the selected feature subset. The out-of-fold prediction probability of each subject is stored, and the pooled probabilities are then used to draw a single ROC curve per configuration. After the LOOCV loop is complete, the Youden index
+\begin{equation}
+    J = \mathrm{TPR}(\tau) - \mathrm{FPR}(\tau)
+\end{equation}
+is computed over all candidate thresholds, and the threshold $\tau^{*}$ that maximizes $J$ is used to binarize the probabilities into class predictions. Accuracy and F1-score are then computed from the resulting confusion matrix.
+
+\subsection*{Cross-Cohort Evaluation}
+
+In addition to the within-cohort LOOCV protocol, every experiment is also evaluated under a stricter cross-cohort transfer protocol: the model is trained on the entire 2020 off-medication cohort and tested on the entire 2025 off-medication cohort. Feature selection is performed exclusively on the training cohort, and the selected feature indices are then transferred to the unseen test cohort. AUROC, accuracy, and F1-score are reported on the test cohort.
+
+\subsection*{Training-Termination Criteria}
+
+Different model families use different criteria to decide when training has converged.
+
+\begin{itemize}
+    \item \textbf{Logistic Regression} stops when the change in the training loss between consecutive iterations falls below a fixed threshold.
+    \item \textbf{Random Forest} and \textbf{XGBoost} are configured to grow up to a fixed number of trees / nodes (see the hyperparameter table in Section~\ref{sec:exp_setting_hparams}).
+\end{itemize}
+
+\subsection*{Hyperparameters}
+\label{sec:exp_setting_hparams}
+
+The hyperparameters of the XGBoost and AGCN models used throughout the experiments are summarized in Tables~\ref{tab:xgboost_params} and~\ref{tab:agcn_params}.
+
+\begin{table}[H]
+    \centering
+    \caption{Hyperparameter configuration for the XGBoost classifier}
+    \label{tab:xgboost_params}
+    \small
+    \setlength{\tabcolsep}{12pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
+        \hline
+        Hyperparameter & Value \\
+        \hline
+        Number of estimators (\texttt{n\_estimators})       & 50 \\
+        Maximum depth (\texttt{max\_depth})                  & 3 \\
+        Learning rate (\texttt{learning\_rate})              & 0.1 \\
+        Evaluation metric (\texttt{eval\_metric})            & logloss \\
+        Random state (\texttt{random\_state})                & 42 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Class imbalance across LOOCV folds is mitigated by rescaling the XGBoost positive-class weight as
 \begin{equation}
     \texttt{scale\_pos\_weight} = \frac{N_{\text{negative}}}{N_{\text{positive}}}.
 \end{equation}
 
-Three feature-selection strategies are compared:
-\begin{enumerate}
-    \item \texttt{SelectKBest + XGB},
-    \item \texttt{Logistic L1 + XGB},
-    \item \texttt{XGB Importance + XGB}.
-\end{enumerate}
-
-Unless otherwise specified, the top 10 features are selected in each training fold. The code also supports stacked left-right prediction, asymmetric stacking with left-right difference features, and LDA followed by XGBoost.
-
-\section{AGCN Configuration}
-
-The Adaptive Graph Convolutional Network (AGCN) framework was evaluated under two primary configurations: sequence-based skeleton modeling and static feature-based graph modeling. To ensure consistent baseline performance and stable gradient convergence, both configurations shared a common set of architectural hyperparameters and optimization objectives, which are meticulously compiled in Table \ref{tab:agcn_params}.
-
 \begin{table}[H]
-	\centering
-	\caption{Architectural and optimization hyperparameters for the AGCN framework}
-	\label{tab:agcn_params}
-		\small
-		\setlength{\tabcolsep}{12pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
-		\hline
-		Hyperparameter & Value / Configuration \\
-		\hline
-		Hidden Channel Dimensions & $\{64, 128, 256\}$ \\
-		Dropout Probability & $0.5$ \\
-		Optimizer & Adam \\
-		Loss Function & Weighted Cross-Entropy \\
-		Number of Graph Nodes & $42$ (Bilateral Hand Joints) \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Architectural and optimization hyperparameters for the AGCN framework}
+    \label{tab:agcn_params}
+    \small
+    \setlength{\tabcolsep}{12pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
+        \hline
+        Hyperparameter & Value / Configuration \\
+        \hline
+        Hidden channel dimensions   & $\{64,\, 128,\, 256\}$ \\
+        Dropout probability         & $0.5$ \\
+        Optimizer                   & Adam \\
+        Loss function               & Weighted cross-entropy \\
+        Number of graph nodes       & $42$ (bilateral hand joints) \\
+        \hline
+    \end{tabularx}
 \end{table}
-
-\subsection{Skeleton AGCN}
-
-The sequence-based Skeleton AGCN directly processes the spatiotemporal kinematics. The model operates on a unified 42-node graph constructed from the concatenated 21-joint bilateral MediaPipe hand landmarks. Consequently, the input tensor is formulated with dimensions $(3, T, 42)$, encapsulating the three spatial coordinates across $T$ temporal frames. The predefined physical adjacency matrix inherently encodes within-hand anatomical constraints, structural self-loops, and a singular inter-hand connection bridging the left and right wrists.
-
-\subsection{FeatureAGCNStyle}
-
-Conversely, the feature-based \texttt{FeatureAGCNStyle} framework recasts the static high-dimensional hand-crafted representations into a graph-structured domain. The complete $1764$-dimensional feature vector is deterministically reshaped into $42$ discrete nodes, thereby assigning $42$ statistical descriptors per joint. Utilizing the identical hidden topology delineated in Table \ref{tab:agcn_params}, the model contrasts two distinct adaptive adjacency strategies:
-\begin{enumerate}
-    \item \textbf{Separate Block}: Each convolutional block independently optimizes a unique adjacency perturbation matrix.
-    \item \textbf{Same Block}: The dynamic adjacency is inferred from intermediate transformation weights via a combination of the Mahalanobis distance and a Gaussian kernel function.
-\end{enumerate}
-
-Following multi-layer computation, the spatially aggregated graph embedding is either directly evaluated via a linear classification head or exported as an enriched feature map for secondary downstream evaluators, such as the Random Forest or XGBoost classifiers.
-
-\section{Leave-One-Out Cross-Validation}
-
-The principal internal validation protocol is Leave-One-Out Cross-Validation (LOOCV), implemented with \texttt{sklearn.model\_selection.LeaveOneOut}. For a dataset of $N$ subjects, LOOCV produces $N$ folds. In each fold, one subject is held out for testing and the remaining $N-1$ subjects are used for feature selection and model fitting. This procedure yields one out-of-fold probability per subject.
-
-Feature selection is performed within each training fold rather than on the full dataset, thereby avoiding information leakage.
-
-\section{Youden Index and Decision Threshold}
-
-After LOOCV, the pooled out-of-fold probabilities are compared against the binary labels to construct the ROC curve. The Youden index is defined as
-\begin{equation}
-    J = \mathrm{Sensitivity} + \mathrm{Specificity} - 1
-      = \mathrm{TPR} - \mathrm{FPR}.
-\end{equation}
-
-The candidate thresholds returned by \texttt{roc\_curve(y\_true, y\_prob)} are evaluated by
-\begin{equation}
-    \tau^{*} = \arg\max_{\tau} \left(\mathrm{TPR}(\tau) - \mathrm{FPR}(\tau)\right).
-\end{equation}
-
-When \texttt{--use\_youden} is enabled, predictions are binarized by $\tau^{*}$; otherwise, a fixed threshold of 0.5 is used.
-
-\section{Evaluation Metrics and Confusion Matrix}
-
-For a binary confusion matrix with true positives (TP), true negatives (TN), false positives (FP), and false negatives (FN), the implementation reports the following metrics:
-
-\begin{equation}
-    \mathrm{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN},
-\end{equation}
-
-\begin{equation}
-    \mathrm{Precision} = \frac{TP}{TP + FP},
-\end{equation}
-
-\begin{equation}
-    \mathrm{Recall} = \frac{TP}{TP + FN},
-\end{equation}
-
-\begin{equation}
-    \mathrm{F1\text{-}score} = \frac{2 \cdot \mathrm{Precision} \cdot \mathrm{Recall}}
-    {\mathrm{Precision} + \mathrm{Recall}}.
-\end{equation}
-
-The confusion matrix is computed by \texttt{confusion\_matrix(y\_true, y\_pred, labels=[0,1])}, where class 0 denotes healthy controls and class 1 denotes PD cases.
-
-\section{How ROC Curves Are Drawn Under LOOCV}
-
-The ROC curve under LOOCV is constructed from aggregated out-of-fold prediction probabilities:
-
-\begin{enumerate}
-    \item for each fold, train the model on $N-1$ subjects and predict the held-out subject's disease probability;
-    \item store the held-out subject's true binary label and predicted probability;
-    \item repeat until every subject has exactly one out-of-fold probability;
-    \item pool all out-of-fold probabilities into one vector and all true labels into another vector;
-    \item call \texttt{roc\_curve} on these pooled vectors to obtain the full ROC trajectory.
-\end{enumerate}
-
-The resulting pooled probabilities are used to compute AUROC, determine the Youden-optimal threshold when required, and derive the final confusion matrix and point estimates.
-
-\section{Cross-Dataset Evaluation}
-
-In addition to internal validation, the repository includes explicit cross-dataset evaluation in which the old cohort is used for training and the horizontal cohort for testing. Under the \texttt{no\_medication} filter, this setting contains 191 old samples (135 healthy, 56 disease) and 118 horizontal samples (90 healthy, 28 disease). Feature selection is performed exclusively on the training cohort and the selected features are then transferred to the unseen cohort, providing a stricter assessment of cross-cohort generalization.

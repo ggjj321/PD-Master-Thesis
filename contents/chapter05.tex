@@ -1,208 +1,212 @@
 % !TeX root = ../main.tex
 
-\chapter{Results and Discussion}
+\chapter{Experiments and Results}
+\label{chap:results}
 
 \newcolumntype{Y}{>{\centering\arraybackslash}p{0.18\linewidth}}
 
-\section{Binary Classification Based on Thumb Fingertip Features}
+This chapter presents the five experiments listed in Section~\ref{sec:roadmap}. For each experiment, the configuration follows the description in Chapter~\ref{chap:methods}, and detailed numerical results are reported as tables and ROC curves to supplement the qualitative discussion of the corresponding slide in the oral defense.
 
-\subsection{Experimental Results}
+\section{Experiment~1: Thumb-Tip Features vs.\ Bilateral Hand Joint Features}
+\label{sec:exp1}
 
-Table \ref{tab:thumb_model_comparison} presents the comparison of three models on thumb fingertip feature-based binary classification. Additionally, Figure \ref{fig:thumb_roc_comparison} displays the ROC curves of binary classification models using thumb fingertip features across different evaluation scenarios. Table \ref{tab:thumb_cross_dataset} provides the cross-dataset evaluation of performance on the 2025 dataset using models trained on the 2020 dataset for thumb fingertip features.
+\subsection{Configuration}
+
+In Experiment~1, two feature subsets are compared as input to three classical classifiers:
+\begin{itemize}
+    \item \textbf{Thumb-tip features.} Frequency, clarity, and amplitude features derived only from the thumb-tip trajectory (joint~4). The thumb tip is visually the most-displaced joint during pronation-supination and therefore a natural single-joint baseline.
+    \item \textbf{Bilateral hand joint features.} The full 1{,}764-dimensional vector of features extracted from all 21 joints of both hands.
+\end{itemize}
+
+For each feature subset, Logistic Regression, Random Forest, and XGBoost are trained and evaluated under LOOCV on each cohort, and additionally under the 2020-to-2025 cross-cohort transfer protocol.
+
+\subsection{Results}
+
+Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performance of the three classifiers on thumb-tip features. Table~\ref{tab:bilateral_model_comparison} reports the corresponding within-cohort results on bilateral hand-joint features. Figures~\ref{fig:thumb_roc_comparison} and~\ref{fig:bilateral_roc_comparison} show the corresponding ROC curves under both LOOCV and cross-cohort protocols. The explicit cross-cohort metrics (train on 2020, test on 2025) are summarized in Tables~\ref{tab:thumb_cross_dataset} and~\ref{tab:bilateral_cross_dataset}.
 
 \begin{table}[H]
-	\centering
-	\caption{Comparison of three models on thumb fingertip feature-based binary classification}
-	\label{tab:thumb_model_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.60 / 0.56 \\
-		Random Forest       & 0.77 / 0.69 & 0.74 / 0.70 & 0.65 / 0.49 \\
-		XGBoost             & 0.77 / 0.61 & 0.72 / 0.71 & 0.62 / 0.41 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Within-cohort LOOCV performance of three classifiers on thumb-tip features}
+    \label{tab:thumb_model_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.60 / 0.56 \\
+        Random Forest       & 0.77 / 0.69 & 0.74 / 0.70 & 0.65 / 0.49 \\
+        XGBoost             & 0.77 / 0.61 & 0.72 / 0.71 & 0.62 / 0.41 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1em}
+
+\begin{table}[H]
+    \centering
+    \caption{Within-cohort LOOCV performance of three classifiers on bilateral hand joint features}
+    \label{tab:bilateral_model_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        Logistic Regression & 0.80 / 0.66 & 0.79 / 0.76 & 0.66 / 0.48 \\
+        Random Forest       & 0.81 / 0.71 & 0.72 / 0.71 & 0.65 / 0.51 \\
+        XGBoost             & 0.77 / 0.62 & 0.74 / 0.73 & 0.61 / 0.46 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Cross-cohort evaluation on thumb-tip features (train on 2020, test on 2025)}
+    \label{tab:thumb_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Model & AUROC & Accuracy & F1-score \\
+        \hline
+        Logistic Regression & 0.63 & 0.64 & 0.52 \\
+        Random Forest       & 0.71 & 0.80 & 0.52 \\
+        XGBoost             & 0.71 & 0.70 & 0.50 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Cross-cohort evaluation on bilateral hand joint features (train on 2020, test on 2025)}
+    \label{tab:bilateral_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Model & AUROC & Accuracy & F1-score \\
+        \hline
+        Logistic Regression & 0.50 & 0.70 & 0.40 \\
+        Random Forest       & 0.68 & 0.70 & 0.49 \\
+        XGBoost             & 0.69 & 0.62 & 0.49 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
 \begin{figure}[H]
     \centering
     \begin{subfigure}[b]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_joint4.png}
-        \caption{2020 Dataset (LOOCV)}
+        \caption{2020 (LOOCV)}
         \label{fig:thumb_roc_2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_joint4.png}
-        \caption{2025 Dataset (LOOCV)}
+        \caption{2025 (LOOCV)}
         \label{fig:thumb_roc_2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[b]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_joint4.png}
-        \caption{Cross-Dataset Result}
+        \caption{Cross-cohort}
         \label{fig:thumb_roc_cross}
     \end{subfigure}
-    \caption{ROC curves of binary classification models using thumb fingertip features across different evaluation scenarios.}
+    \caption{ROC curves on thumb-tip features under LOOCV and cross-cohort transfer.}
     \label{fig:thumb_roc_comparison}
 \end{figure}
-
-\begin{table}[H]
-	\centering
-	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset for thumb fingertip features}
-	\label{tab:thumb_cross_dataset}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & AUROC & Accuracy & F1-score \\
-		\hline
-		Logistic Regression & 0.63 & 0.64 & 0.52 \\
-		Random Forest       & 0.71 & 0.80 & 0.52 \\
-		XGBoost             & 0.71 & 0.70 & 0.50 \\
-		\hline
-	\end{tabularx}
-\end{table}
-
-\subsection{Observations}
-
-Based on the results presented in Table \ref{tab:thumb_model_comparison} and the ROC curves in Figure \ref{fig:thumb_roc_comparison}(a) and (b), in the 2020 dataset, tree-based models such as Random Forest and XGBoost demonstrated superior discriminative power, both achieving an AUROC of 0.77. However, evaluated on the 2025 dataset, Logistic Regression proved more resilient, securing the highest accuracy (0.77) and F1-score (0.56). This shift indicates that simpler linear models may provide better cross-dataset stability, whereas complex tree models suffer from significant performance degradation.
-
-Furthermore, Table \ref{tab:thumb_cross_dataset} and Figure \ref{fig:thumb_roc_comparison}(c) illustrate the results of explicit cross-cohort evaluation (trained on 2020, tested on 2025). While Random Forest achieved the highest accuracy (0.80), its discriminative balance remained limited (F1-score of 0.52). XGBoost provided the highest AUROC (0.71), suggesting it yields better instance ranking despite lower absolute recall. In contrast to internal validation, Logistic Regression struggled in this direct transfer scenario, indicating that linear assumptions may be insufficient for generalizing complex fingertip patterns across distinct temporal cohorts.
-
-
-\section{Binary Classification Using Machine Learning on Bilateral Hand Joint Features}
-
-\subsection{Experimental Results}
-
-Table \ref{tab:bilateral_model_comparison} presents the comparison of three models on bilateral hand joint feature-based binary classification. In addition, Figure \ref{fig:bilateral_roc_comparison} shows the ROC curves for the corresponding evaluation settings, and Table \ref{tab:bilateral_cross_dataset} reports the cross-dataset evaluation on the 2025 dataset using models trained on the 2020 dataset.
-
-\begin{table}[H]
-	\centering
-	\caption{Comparison of three models on bilateral hand joint feature-based binary classification}
-	\label{tab:bilateral_model_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		Logistic Regression & 0.80 / 0.66 & 0.79 / 0.76 & 0.66 / 0.48 \\
-		Random Forest       & 0.81 / 0.71 & 0.72 / 0.71 & 0.65 / 0.51 \\
-		XGBoost             & 0.77 / 0.62 & 0.74 / 0.73 & 0.61 / 0.46 \\
-		\hline
-	\end{tabularx}
-\end{table}
-\vspace{-1.5em}
-\begin{table}[H]
-	\centering
-	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset for bilateral hand joint features}
-	\label{tab:bilateral_cross_dataset}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & AUROC & Accuracy & F1-score \\
-		\hline
-		Logistic Regression & 0.50 & 0.70 & 0.40 \\
-		Random Forest       & 0.68 & 0.70 & 0.49 \\
-		XGBoost             & 0.69 & 0.62 & 0.49 \\
-		\hline
-	\end{tabularx}
-\end{table}
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_All_Joints.png}
-        \caption{2020 Dataset (LOOCV)}
+        \caption{2020 (LOOCV)}
         \label{fig:bilateral_roc_2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_All_Joints.png}
-        \caption{2025 Dataset (LOOCV)}
+        \caption{2025 (LOOCV)}
         \label{fig:bilateral_roc_2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_All_joints.png}
-        \caption{Cross-Dataset Result}
+        \caption{Cross-cohort}
         \label{fig:bilateral_roc_cross}
     \end{subfigure}
-    \caption{ROC curves of binary classification models using bilateral hand joint features across different evaluation scenarios.}
+    \caption{ROC curves on bilateral hand joint features under LOOCV and cross-cohort transfer.}
     \label{fig:bilateral_roc_comparison}
 \end{figure}
 
-\subsection{Observations}
+\subsection{Observation}
 
-Based on Table \ref{tab:bilateral_model_comparison} and Figure \ref{fig:bilateral_roc_comparison}(a) and (b), Random Forest and Logistic Regression achieved the strongest results on the 2020 dataset, with AUROCs of 0.81 and 0.80, respectively. Logistic Regression led in accuracy (0.79) and F1-score (0.66), suggesting that bilateral joint features can be effectively modeled by a linear decision boundary. On the 2025 dataset, Random Forest showed the highest AUROC (0.71), whereas Logistic Regression retained the highest accuracy (0.76). Overall, tree-based models appeared more robust to cohort variation.
+Under LOOCV, performance on the 2020 and 2025 cohorts is broadly comparable across the two feature subsets and the three classifier families: thumb-tip features and bilateral features yield similar AUROC values, with no single classifier dominating in both cohorts simultaneously. In the cross-cohort transfer setting, however, XGBoost emerges as the most stable model in terms of AUROC, retaining $0.71$ on thumb-tip features and $0.69$ on bilateral features. This observation motivates the choice of XGBoost as the default downstream classifier for all subsequent experiments.
 
-The cross-dataset results in Table \ref{tab:bilateral_cross_dataset} and Figure \ref{fig:bilateral_roc_comparison}(c) show the same tendency: XGBoost and Random Forest outperformed Logistic Regression in AUROC (0.69 and 0.68 versus 0.50). Although Logistic Regression maintained an accuracy of 0.70, its ranking ability deteriorated substantially in the external cohort.
+\section{Experiment~2: Feature Selection on Bilateral Hand Joint Features with XGBoost}
+\label{sec:exp2}
 
-\section{Feature Selection on Bilateral Hand Joint Features Combined with XGBoost for Binary Classification}
+\subsection{Configuration}
 
-\subsection{Experimental Results}
+Experiment~2 builds on the bilateral feature subset of Experiment~1 by inserting an explicit feature-selection stage in front of the XGBoost classifier. The three feature-selection strategies introduced in Section~\ref{sec:fs} are compared: ANOVA F-value (\texttt{SelectKBest}), L1-regularized Logistic Regression, and XGBoost gain-based importance. The downstream classifier remains XGBoost. Feature selection is re-run inside every LOOCV training fold.
 
-The univariate feature selection was performed using the SelectKBest method with the ANOVA F-value as the scoring function. Table \ref{tab:fs_xgb_bilateral_comparison} shows the comparison of feature selection methods combined with XGBoost on bilateral hand joint features. Figure \ref{fig:fs_bilateral_roc_comparison} shows the corresponding ROC curves, Figure \ref{fig:fs_bilateral_scatter_comparison} presents the scatter plots of the selected features, and Table \ref{tab:fs_bilateral_cross_dataset} presents the cross-dataset evaluation results.
+\subsection{Results}
+
+Table~\ref{tab:fs_xgb_bilateral_comparison} reports the within-cohort LOOCV performance of the three feature-selection methods combined with XGBoost. Figure~\ref{fig:fs_bilateral_roc_comparison} shows the corresponding ROC curves, and Figure~\ref{fig:fs_bilateral_scatter_comparison} shows two-dimensional scatter plots of the most discriminative selected features. The cross-cohort transfer results are summarized in Table~\ref{tab:fs_bilateral_cross_dataset}.
 
 \begin{table}[H]
-	\centering
-	\caption{Comparison of feature selection methods combined with XGBoost on bilateral hand joint features}
-	\label{tab:fs_xgb_bilateral_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		ANOVA + XGBoost    & 0.74 / 0.62 & 0.76 / 0.48 & 0.64 / 0.45 \\
-		L1-Regularization + XGBoost    & 0.74 / 0.57 & 0.80 / 0.62 & 0.61 / 0.43 \\
-		XGB Importance + XGBoost & 0.74 / 0.69 & 0.78 / 0.72 & 0.60 / 0.54 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Feature selection on bilateral features combined with XGBoost (LOOCV)}
+    \label{tab:fs_xgb_bilateral_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        ANOVA + XGBoost              & 0.74 / 0.62 & 0.76 / 0.48 & 0.64 / 0.45 \\
+        L1-Logistic + XGBoost        & 0.74 / 0.57 & 0.80 / 0.62 & 0.61 / 0.43 \\
+        XGB Importance + XGBoost     & 0.74 / 0.69 & 0.78 / 0.72 & 0.60 / 0.54 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1.5em}
+
 \begin{table}[H]
-	\centering
-	\caption{Cross-dataset evaluation: performance on the 2025 dataset using models trained on the 2020 dataset with feature selection on bilateral features}
-	\label{tab:fs_bilateral_cross_dataset}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & AUROC & Accuracy & F1-score \\
-		\hline
-		ANOVA + XGBoost    & 0.68 & 0.73 & 0.47 \\
-		L1-Regularization + XGBoost    & 0.68 & 0.65 & 0.50 \\
-		XGB Importance + XGBoost & 0.65 & 0.79 & 0.47 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Cross-cohort evaluation of feature selection on bilateral features with XGBoost (train on 2020, test on 2025)}
+    \label{tab:fs_bilateral_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & AUROC & Accuracy & F1-score \\
+        \hline
+        ANOVA + XGBoost              & 0.68 & 0.73 & 0.47 \\
+        L1-Logistic + XGBoost        & 0.68 & 0.65 & 0.50 \\
+        XGB Importance + XGBoost     & 0.65 & 0.79 & 0.47 \\
+        \hline
+    \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_fs_bilateral.png}
-        \caption{2020 Dataset (LOOCV)}
+        \caption{2020 (LOOCV)}
         \label{fig:fs_bilateral_roc_2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_fs_bilateral.png}
-        \caption{2025 Dataset (LOOCV)}
+        \caption{2025 (LOOCV)}
         \label{fig:fs_bilateral_roc_2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_fs_bilateral.png}
-        \caption{Cross-Dataset Result}
+        \caption{Cross-cohort}
         \label{fig:fs_bilateral_roc_cross}
     \end{subfigure}
-    \caption{ROC curves of feature selection methods combined with XGBoost on bilateral hand joint features across different evaluation scenarios.}
+    \caption{ROC curves of feature selection on bilateral features combined with XGBoost.}
     \label{fig:fs_bilateral_roc_comparison}
 \end{figure}
 
@@ -211,19 +215,16 @@ The univariate feature selection was performed using the SelectKBest method with
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_anova_fs_scatter.png}
         \caption{ANOVA, 2020}
-        \label{fig:fs_bilateral_scatter_2020_anova}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_l1_fs_scatter.png}
-        \caption{L1-Regularization, 2020}
-        \label{fig:fs_bilateral_scatter_2020_l1}
+        \caption{L1-Logistic, 2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_xgbimp_fs_scatter.png}
         \caption{XGB Importance, 2020}
-        \label{fig:fs_bilateral_scatter_2020_xgb}
     \end{subfigure}
 
     \vspace{0.2em}
@@ -231,236 +232,286 @@ The univariate feature selection was performed using the SelectKBest method with
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_anova_fs_scatter.png}
         \caption{ANOVA, 2025}
-        \label{fig:fs_bilateral_scatter_2025_anova}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_l1_fs_scatter.png}
-        \caption{L1-Regularization, 2025}
-        \label{fig:fs_bilateral_scatter_2025_l1}
+        \caption{L1-Logistic, 2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_xgbimp_fs_scatter.png}
         \caption{XGB Importance, 2025}
-        \label{fig:fs_bilateral_scatter_2025_xgb}
     \end{subfigure}
-
-    \vspace{0.2em}
-
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/cross_anova_fs_scatter.png}
-        \caption{ANOVA, Cross-Dataset}
-        \label{fig:fs_bilateral_scatter_cross_anova}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/cross_l1_fs_scatter.png}
-        \caption{L1-Regularization, Cross-Dataset}
-        \label{fig:fs_bilateral_scatter_cross_l1}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/cross_xgbimp_fs_scatter.png}
-        \caption{XGB Importance, Cross-Dataset}
-        \label{fig:fs_bilateral_scatter_cross_xgb}
-    \end{subfigure}
-    \caption{Scatter plots of the selected features for the feature-selection methods combined with XGBoost on bilateral hand joint features across different evaluation scenarios.}
+    \caption{Scatter plots of the most discriminative selected features for the three feature-selection methods on bilateral features (PD vs healthy).}
     \label{fig:fs_bilateral_scatter_comparison}
 \end{figure}
 
-\subsection{Observations}
+\subsection{Top-10 Hand-Side Distribution}
 
-Based on Table \ref{tab:fs_xgb_bilateral_comparison} and Figure \ref{fig:fs_bilateral_roc_comparison}(a) and (b), all three methods yielded the same AUROC of 0.74 on the 2020 dataset, but their performance diverged on the 2025 cohort. The corresponding feature scatter plots in Figure \ref{fig:fs_bilateral_scatter_comparison} show that the class distributions remain partially overlapping across all three methods, whereas XGB Importance produces a relatively clearer separation on the 2025 dataset. XGB Importance therefore showed the strongest generalization, achieving the highest AUROC (0.69), accuracy (0.72), and F1-score (0.54).
-
-The cross-dataset results in Table \ref{tab:fs_bilateral_cross_dataset}, Figure \ref{fig:fs_bilateral_roc_comparison}(c), and the last row of Figure \ref{fig:fs_bilateral_scatter_comparison} further indicate that XGB Importance combined with XGBoost achieved the highest accuracy (0.79), whereas ANOVA and L1-Regularization reached slightly higher AUROC values of 0.68. These findings suggest that tree-based feature selection improves transferability, although the trade-off between discrimination and calibration remains method-dependent.
-
-
-\section{Feature Selection on Left and Right Hand Features with Individual XGBoost-Based Binary Classification}
-
-\subsection{Experimental Results}
-
-Table \ref{tab:fs_xgb_right_hand_comparison} shows the right-hand only results, Table \ref{tab:fs_xgb_left_hand_comparison} presents the left-hand only results, and Figure \ref{fig:fs_hand_roc_comparison} illustrates the corresponding ROC curves. Finally, Table \ref{tab:fs_lr_hand_cross_dataset} summarizes the cross-dataset evaluation for both hands.
+To investigate which hand contributes most of the discriminative signal, the top-10 selected features are aggregated across LOOCV folds and the proportion belonging to the left versus the right hand is recorded. Table~\ref{tab:fs_topk_hand_distribution} summarizes the result.
 
 \begin{table}[H]
-	\centering
-	\caption{Right-hand only results: comparison of feature selection methods combined with XGBoost}
-	\label{tab:fs_xgb_right_hand_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		ANOVA + XGBoost    & 0.57 / 0.67 & 0.66 / 0.69 & 0.40 / 0.45 \\
-		L1-Regularization + XGBoost    & 0.70 / 0.77 & 0.70 / 0.64 & 0.55 / 0.53 \\
-		XGB Importance + XGBoost & 0.68 / 0.56 & 0.68 / 0.70 & 0.53 / 0.36 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Distribution of the top-10 selected features between the left and right hand}
+    \label{tab:fs_topk_hand_distribution}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c c}
+        \hline
+        Cohort & Right-hand count & Left-hand count \\
+        \hline
+        2020 & 5  & 25 \\
+        2025 & 11 & 19 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1.5em}
+
+\subsection{Observation}
+
+All three feature-selection methods reach the same AUROC of $0.74$ on the 2020 cohort. On the 2025 cohort, XGBoost Importance yields the strongest within-cohort generalization, with the highest AUROC ($0.69$), accuracy ($0.72$), and F1-score ($0.54$). In the cross-cohort transfer setting, the XGB Importance + XGBoost combination matches the best Random-Forest thumb-tip baseline of Experiment~1, while ANOVA and L1-Logistic feature selection reach a marginally higher AUROC of $0.68$.
+
+The hand-side distribution in Table~\ref{tab:fs_topk_hand_distribution} reveals a consistent left-versus-right asymmetry: among the top-10 selected features, the left hand contributes $25{:}5$ on the 2020 cohort and $19{:}11$ on the 2025 cohort. This observation directly motivates Experiment~3.
+
+\section{Experiment~3: Left-Hand-Only vs.\ Right-Hand-Only Feature Selection with XGBoost}
+\label{sec:exp3}
+
+\subsection{Configuration}
+
+Experiment~3 repeats the feature-selection-plus-XGBoost pipeline of Experiment~2 on three feature subsets: the left-hand-only subset, the right-hand-only subset, and the bilateral subset (the latter is included for reference). All other settings, including LOOCV protocol and cross-cohort transfer, are identical to Experiment~2.
+
+\subsection{Results}
+
+Tables~\ref{tab:fs_xgb_right_hand_comparison} and~\ref{tab:fs_xgb_left_hand_comparison} report the within-cohort LOOCV performance for the right and left hand respectively, and Figure~\ref{fig:fs_hand_roc_comparison} shows the corresponding ROC curves. The cross-cohort transfer results are summarized in Table~\ref{tab:fs_lr_hand_cross_dataset}.
+
 \begin{table}[H]
-	\centering
-	\caption{Left-hand only results: comparison of feature selection methods combined with XGBoost}
-	\label{tab:fs_xgb_left_hand_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		ANOVA + XGBoost    & 0.53 / 0.74 & 0.62 / 0.76 & 0.39 / 0.64 \\
-		L1-Regularization + XGBoost    & 0.63 / 0.78 & 0.70 / 0.79 & 0.44 / 0.66 \\
-		XGB Importance + XGBoost & 0.75 / 0.76 & 0.80 / 0.81 & 0.63 / 0.65 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Right-hand-only feature selection combined with XGBoost (LOOCV)}
+    \label{tab:fs_xgb_right_hand_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        ANOVA + XGBoost              & 0.57 / 0.67 & 0.66 / 0.69 & 0.40 / 0.45 \\
+        L1-Logistic + XGBoost        & 0.70 / 0.77 & 0.70 / 0.64 & 0.55 / 0.53 \\
+        XGB Importance + XGBoost     & 0.68 / 0.56 & 0.68 / 0.70 & 0.53 / 0.36 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1.5em}
+
 \begin{table}[H]
-	\centering
-	\caption{Cross-dataset evaluation: comparison of feature selection on right and left hand features trained on 2020 and tested on 2025}
-	\label{tab:fs_lr_hand_cross_dataset}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedleft\arraybackslash}p{0.15\linewidth}XYYY}
-		\hline
-		& Model & AUROC & Accuracy & F1-score \\
-		\hline
-		\multirow{3}{*}{Right Hand} & ANOVA + XGBoost    & 0.68 & 0.57 & 0.47 \\
-		& L1-Regularization + XGBoost    & 0.62 & 0.65 & 0.42 \\
-		& XGB Importance + XGBoost & 0.65 & 0.46 & 0.46 \\
-		\hline
-		\multirow{3}{*}{Left Hand} & ANOVA + XGBoost    & 0.68 & 0.74 & 0.47 \\
-		& L1-Regularization + XGBoost    & 0.63 & 0.74 & 0.46 \\
-		& XGB Importance + XGBoost & 0.66 & 0.67 & 0.48 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Left-hand-only feature selection combined with XGBoost (LOOCV)}
+    \label{tab:fs_xgb_left_hand_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        ANOVA + XGBoost              & 0.53 / 0.74 & 0.62 / 0.76 & 0.39 / 0.64 \\
+        L1-Logistic + XGBoost        & 0.63 / 0.78 & 0.70 / 0.79 & 0.44 / 0.66 \\
+        XGB Importance + XGBoost     & 0.75 / 0.76 & 0.80 / 0.81 & 0.63 / 0.65 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Cross-cohort evaluation of right- and left-hand-only feature selection with XGBoost (train on 2020, test on 2025)}
+    \label{tab:fs_lr_hand_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedleft\arraybackslash}p{0.15\linewidth}XYYY}
+        \hline
+        & Method & AUROC & Accuracy & F1-score \\
+        \hline
+        \multirow{3}{*}{Right hand} & ANOVA + XGBoost           & 0.68 & 0.57 & 0.47 \\
+                                    & L1-Logistic + XGBoost     & 0.62 & 0.65 & 0.42 \\
+                                    & XGB Importance + XGBoost  & 0.65 & 0.46 & 0.46 \\
+        \hline
+        \multirow{3}{*}{Left hand}  & ANOVA + XGBoost           & 0.68 & 0.74 & 0.47 \\
+                                    & L1-Logistic + XGBoost     & 0.63 & 0.74 & 0.46 \\
+                                    & XGB Importance + XGBoost  & 0.66 & 0.67 & 0.48 \\
+        \hline
+    \end{tabularx}
 \end{table}
 
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_right_hand_fs.png}
-        \caption{Right Hand, 2020}
-        \label{fig:fs_hand_roc_right_2020}
+        \caption{Right hand, 2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_right_hand_fs.png}
-        \caption{Right Hand, 2025}
-        \label{fig:fs_hand_roc_right_2025}
+        \caption{Right hand, 2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_right_hand_fs.png}
-        \caption{Right Hand, Cross-Dataset}
-        \label{fig:fs_hand_roc_right_cross}
+        \caption{Right hand, cross-cohort}
     \end{subfigure}
 
     \vspace{0.2em}
 
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_left_hand_fs.png}
-        \caption{Left Hand, 2020}
-        \label{fig:fs_hand_roc_left_2020}
+        \caption{Left hand, 2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_left_hand_fs.png}
-        \caption{Left Hand, 2025}
-        \label{fig:fs_hand_roc_left_2025}
+        \caption{Left hand, 2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_left_hand_fs.png}
-        \caption{Left Hand, Cross-Dataset}
-        \label{fig:fs_hand_roc_left_cross}
+        \caption{Left hand, cross-cohort}
     \end{subfigure}
-    \caption{ROC curves of feature selection methods combined with XGBoost using right-hand and left-hand features across different evaluation scenarios.}
+    \caption{ROC curves of feature selection combined with XGBoost on right-hand-only and left-hand-only features.}
     \label{fig:fs_hand_roc_comparison}
 \end{figure}
 
-\subsection{Observations}
+\subsection{Observation}
 
-Based on Tables \ref{tab:fs_xgb_right_hand_comparison} and \ref{tab:fs_xgb_left_hand_comparison}, together with Figure \ref{fig:fs_hand_roc_comparison}, models trained on left-hand features consistently outperformed their right-hand counterparts. In particular, the left-hand model using XGB Importance achieved stable AUROC values of 0.75--0.76 and the highest accuracy (0.80--0.81).
+Across both cohorts and all three feature-selection methods, left-hand-only models consistently outperform their right-hand-only counterparts. The strongest within-cohort configuration is the left-hand XGB Importance + XGBoost combination, which reaches AUROCs of $0.75$ and $0.76$ on the 2020 and 2025 cohorts respectively, with accuracies of $0.80$ and $0.81$. In the cross-cohort transfer setting, left-hand models also enjoy a consistent advantage in accuracy and F1-score over right-hand models. The asymmetry is qualitatively in line with the motor-reserve hypothesis discussed in Section~\ref{sec:rw_motor_reserve}: for a predominantly right-handed cohort, the non-dominant left hand provides more clearly expressed and more transferable motor markers.
 
-The cross-dataset results in Table \ref{tab:fs_lr_hand_cross_dataset}, as also reflected in Figure \ref{fig:fs_hand_roc_comparison}(c) and (f), reinforce the superiority of left-hand features. Across all feature-selection methods, left-hand models achieved higher accuracy and more stable F1-scores, suggesting that the left hand provides more transferable motor markers in this cohort pair.
+\section{Experiment~4: Bilateral Features Plus Joint-Wise Correlation with Feature Selection and XGBoost}
+\label{sec:exp4}
 
-\section{Binary Classification Using Graph Convolutional Networks}
+\subsection{Configuration}
 
-\subsection{Experimental Results}
+Experiment~4 evaluates whether explicit pairwise inter-joint coupling, encoded by the correlation features of Section~\ref{sec:joint_corr_corr}, adds discriminative value on top of the bilateral autocorrelation and amplitude features. The bilateral feature vector is augmented with the joint-wise pairwise correlation features, the three feature-selection strategies are then applied on the extended feature space, and XGBoost is used as the downstream classifier. Two baselines are kept for comparison: the strongest single-side model from Experiment~3 (left-hand XGB Importance) and the strongest bilateral model from Experiment~2 (bilateral XGB Importance).
 
-Table \ref{tab:gcn_block_model_comparison} details the comparison of block designs and models for graph-based binary classification (2020/2025). Figure \ref{fig:gcn_roc_comparison} presents the corresponding ROC curves, and Table \ref{tab:gcn_cross_dataset} provides the cross-dataset evaluation.
+\subsection{Results}
+
+Table~\ref{tab:correlation_within_cohort} reports the within-cohort LOOCV performance and Table~\ref{tab:correlation_cross_dataset} reports the cross-cohort transfer results.
 
 \begin{table}[H]
-	\centering
-	\caption{Comparison of block designs and models for graph-based binary classification (2020/2025)}
-	\label{tab:gcn_block_model_comparison}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
-		\hline
-		Separate Block Logistic Regression & 0.98 / 0.97 & 0.90 / 0.92 & 0.84 / 0.81 \\
-		Separate Block XGBoost             & 0.87 / 0.78 & 0.83 / 0.82 & 0.69 / 0.59 \\
-		Separate Block Random Forest       & 0.92 / 0.84 & 0.86 / 0.84 & 0.75 / 0.60 \\
-		Same Block Logistic Regression     & 0.98 / 0.97 & 0.89 / 0.92 & 0.80 / 0.82 \\
-		Same Block XGBoost                 & 0.89 / 0.76 & 0.85 / 0.84 & 0.73 / 0.60 \\
-		Same Block Random Forest           & 0.92 / 0.83 & 0.85 / 0.86 & 0.71 / 0.62 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Within-cohort LOOCV performance with joint-wise correlation features added to the bilateral feature set}
+    \label{tab:correlation_within_cohort}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        Left-hand XGB Importance (baseline)         & 0.76 / 0.75 & 0.81 / 0.80 & 0.65 / 0.63 \\
+        Bilateral XGB Importance (baseline)         & 0.74 / 0.69 & 0.78 / 0.72 & 0.60 / 0.54 \\
+        Correlation + ANOVA + XGBoost               & 0.74 / 0.61 & 0.77 / 0.63 & 0.63 / 0.44 \\
+        Correlation + L1-Logistic + XGBoost         & 0.73 / 0.55 & 0.81 / 0.60 & 0.63 / 0.42 \\
+        Correlation + XGB Importance + XGBoost      & 0.74 / 0.70 & 0.78 / 0.65 & 0.62 / 0.50 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1.5em}
+
 \begin{table}[H]
-	\centering
-	\caption{Cross-dataset evaluation: comparison of GCN block designs and models trained on 2020 and tested on 2025}
-	\label{tab:gcn_cross_dataset}
-		\small
-		\setlength{\tabcolsep}{4pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
-		\hline
-		Model & AUROC & Accuracy & F1-score \\
-		\hline
-		Separate Block Logistic Regression & 0.53 & 0.58 & 0.40 \\
-		Separate Block XGBoost             & 0.58 & 0.64 & 0.39 \\
-		Separate Block Random Forest       & 0.58 & 0.58 & 0.41 \\
-		Same Block Logistic Regression     & 0.59 & 0.57 & 0.45 \\
-		Same Block XGBoost                 & 0.62 & 0.64 & 0.44 \\
-		Same Block Random Forest           & 0.61 & 0.59 & 0.43 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Cross-cohort evaluation with joint-wise correlation features (train on 2020, test on 2025)}
+    \label{tab:correlation_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & AUROC & Accuracy & F1-score \\
+        \hline
+        Left-hand XGB Importance (baseline)         & 0.66 & 0.67 & 0.48 \\
+        Bilateral XGB Importance (baseline)         & 0.65 & 0.79 & 0.47 \\
+        Correlation + ANOVA + XGBoost               & 0.68 & 0.75 & 0.49 \\
+        Correlation + L1-Logistic + XGBoost         & 0.66 & 0.61 & 0.47 \\
+        Correlation + XGB Importance + XGBoost      & 0.68 & 0.69 & 0.50 \\
+        \hline
+    \end{tabularx}
 \end{table}
-\vspace{-1.5em}
+
+\subsection{Observation}
+
+Adding the joint-wise pairwise correlation features does \emph{not} produce a consistent improvement over the strongest baselines. Within cohort, the best correlation-augmented configuration only matches the bilateral baseline (AUROC $0.74$) on the 2020 cohort and reaches AUROC $0.70$ on the 2025 cohort, both below the left-hand-only baseline. In the cross-cohort transfer setting, correlation-augmented configurations modestly improve the AUROC by about $0.02$--$0.03$ (from $0.65$--$0.66$ to $0.68$), but the gain is small and is not accompanied by a stable improvement in accuracy or F1-score. We interpret this as evidence that, once autocorrelation and amplitude descriptors are in place, additional pairwise linear couplings carry limited extra information.
+
+\section{Experiment~5: Adaptive Graph Convolutional Network}
+\label{sec:exp5}
+
+\subsection{Configuration}
+
+Experiment~5 replaces the hand-crafted feature pipeline by a learned graph-based feature extractor. The Adaptive Graph Convolutional Network described in Section~\ref{sec:joint_corr_agcn} is applied to the bilateral skeleton representation. Two block designs are compared, both following the formulation in Chapter~\ref{chap:methods}:
+\begin{itemize}
+    \item \textbf{Separate block.} Each graph block independently learns a perturbation matrix added to the anatomical adjacency.
+    \item \textbf{Same block.} The adaptive adjacency is derived from the layer's transformation weights via the Mahalanobis distance and a Gaussian kernel, and shared across blocks.
+\end{itemize}
+After graph propagation, the per-node embeddings are average-pooled to form a graph-level representation, which is then classified by Logistic Regression, Random Forest, or XGBoost.
+
+\subsection{Results}
+
+Table~\ref{tab:gcn_block_model_comparison} reports the within-cohort LOOCV performance of the six configurations on the 2020 and 2025 cohorts. Figure~\ref{fig:gcn_roc_comparison} shows the corresponding ROC curves. The cross-cohort transfer results are reported in Table~\ref{tab:gcn_cross_dataset}.
+
+\begin{table}[H]
+    \centering
+    \caption{AGCN under LOOCV (block design $\times$ downstream classifier)}
+    \label{tab:gcn_block_model_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Configuration & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        \hline
+        Separate block + Logistic Regression & 0.98 / 0.97 & 0.90 / 0.92 & 0.84 / 0.81 \\
+        Separate block + XGBoost             & 0.87 / 0.78 & 0.83 / 0.82 & 0.69 / 0.59 \\
+        Separate block + Random Forest       & 0.92 / 0.84 & 0.86 / 0.84 & 0.75 / 0.60 \\
+        Same block + Logistic Regression     & 0.98 / 0.97 & 0.89 / 0.92 & 0.80 / 0.82 \\
+        Same block + XGBoost                 & 0.89 / 0.76 & 0.85 / 0.84 & 0.73 / 0.60 \\
+        Same block + Random Forest           & 0.92 / 0.83 & 0.85 / 0.86 & 0.71 / 0.62 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Cross-cohort evaluation of AGCN configurations (train on 2020, test on 2025)}
+    \label{tab:gcn_cross_dataset}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Configuration & AUROC & Accuracy & F1-score \\
+        \hline
+        Separate block + Logistic Regression & 0.53 & 0.58 & 0.40 \\
+        Separate block + XGBoost             & 0.58 & 0.64 & 0.39 \\
+        Separate block + Random Forest       & 0.58 & 0.58 & 0.41 \\
+        Same block + Logistic Regression     & 0.59 & 0.57 & 0.45 \\
+        Same block + XGBoost                 & 0.62 & 0.64 & 0.44 \\
+        Same block + Random Forest           & 0.61 & 0.59 & 0.43 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_agcn.png}
-        \caption{2020 Dataset}
+        \caption{2020 (LOOCV)}
         \label{fig:gcn_roc_2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2025_agcn.png}
-        \caption{2025 Dataset}
+        \caption{2025 (LOOCV)}
         \label{fig:gcn_roc_2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/cross_agcn.png}
-        \caption{Cross-Dataset Result}
+        \caption{Cross-cohort}
         \label{fig:gcn_roc_cross}
     \end{subfigure}
-    \caption{ROC curves of graph-based binary classification across different evaluation scenarios.}
+    \caption{ROC curves of AGCN configurations under LOOCV and cross-cohort transfer.}
     \label{fig:gcn_roc_comparison}
 \end{figure}
 
-\subsection{Observations}
+\subsection{Observation}
 
-Based on Table \ref{tab:gcn_block_model_comparison} and Figure \ref{fig:gcn_roc_comparison}(a) and (b), graph-derived features produced near-optimal within-dataset performance, with Logistic Regression achieving AUROCs of 0.98 and 0.97 in the two cohorts.
-
-However, the explicit cross-dataset results in Table \ref{tab:gcn_cross_dataset} and Figure \ref{fig:gcn_roc_comparison}(c) show a marked performance drop. AUROC values decreased to 0.53--0.62, with Same Block XGBoost achieving the highest AUROC (0.62) and accuracy (0.64). This gap indicates that the learned graph representations are highly effective within cohort but remain sensitive to distribution shift across cohorts.
-
-
-
-This is just to test \cite{Krasnogor2004e} the cite function.
+Within cohort, AGCN dramatically outperforms every hand-crafted configuration of Experiments~1--4, with the Logistic Regression head reaching AUROCs of $0.98$ (2020) and $0.97$ (2025), and accuracies of $0.89$--$0.92$. In the cross-cohort transfer setting, however, AUROC collapses to $0.53$--$0.62$, comparable to or worse than the best hand-crafted feature configurations (best result: Same block + XGBoost, AUROC $0.62$). Because the adaptive graph topology is itself learned from the training distribution, the discovered joint-wise relations do not transfer well when the recording protocol or patient population shifts, which exacerbates the domain-shift problem typical of small clinical datasets.

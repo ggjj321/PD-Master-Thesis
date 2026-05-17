@@ -1,135 +1,168 @@
 % !TeX root = ../main.tex
 
-\chapter{Methods}
+\chapter{Proposed Methods}
+\label{chap:methods}
 
-\section{Overview}
+\section{Overall Pipeline}
+\label{sec:pipeline}
 
-The proposed pipeline converts raw hand-movement videos into landmark sequences, derives hand-crafted kinematic descriptors, and performs classification using either conventional machine learning models or graph-based models. In the classification stage, PD stage 0 is treated as the healthy class and PD stages 1--4 are merged into the disease class.
-
-\section{MediaPipe-Based Hand Landmark Extraction}
-
-In this study, the MediaPipe Hands framework is employed to extract continuous hand landmarks from the recorded video sequences. To ensure robust spatial localization while mitigating computational overhead, the tracking model was instantiated with the predefined hyperparameters detailed in Table \ref{tab:mediapipe_params}. Focusing the detection scope strictly on a single hand (\texttt{max\_num\_hands=1}) per lateral processing stream prevents the erroneous indexing of extraneous background elements, while both detection and tracking confidence thresholds were set to 0.5 to balance localization sensitivity with false-positive rejection.
+Figure-conceptually, the proposed system is a four-stage pipeline. A raw hand-rotation video is first passed through MediaPipe to obtain a temporal sequence of 21 hand-keypoint coordinates per hand. From the resulting skeletal time series, three families of kinematic descriptors are extracted: \emph{frequency}, \emph{clarity} (rhythmic regularity), and \emph{amplitude}. The resulting high-dimensional feature vector is then reduced by one of three feature-selection strategies, namely ANOVA F-value, L1-regularized Logistic Regression, and XGBoost gain-based importance. Finally, the selected features are fed into one of four machine-learning models: Logistic Regression, Random Forest, XGBoost, or an Adaptive Graph Convolutional Network (AGCN). The output is a single binary label indicating whether the subject is PD or healthy.
 
 \begin{table}[H]
-	\centering
-	\caption{Initialization hyperparameters for the MediaPipe Hands framework}
-	\label{tab:mediapipe_params}
-		\small
-		\setlength{\tabcolsep}{12pt}
-		\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
-		\hline
-		Hyperparameter & Value \\
-		\hline
-		Maximum Number of Hands & 1 \\
-		Minimum Detection Confidence & 0.5 \\
-		Minimum Tracking Confidence & 0.5 \\
-		\hline
-	\end{tabularx}
+    \centering
+    \caption{Stages of the proposed pipeline}
+    \label{tab:pipeline_overview}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.28\linewidth} >{\raggedright\arraybackslash}X}
+        \hline
+        Stage & Module / Output \\
+        \hline
+        Skeleton extraction   & MediaPipe Hands $\rightarrow$ 21-keypoint 3D skeleton per frame \\
+        Feature extraction    & Frequency, Clarity, Amplitude \\
+        Feature selection     & ANOVA F-value / L1-Logistic Regression / XGBoost Importance \\
+        Machine learning      & Logistic Regression / Random Forest / XGBoost / AGCN \\
+        Output                & PD-versus-healthy binary classification \\
+        \hline
+    \end{tabularx}
 \end{table}
 
-For each valid frame, MediaPipe returns 21 landmarks with normalized coordinates $(x,y,z)$, yielding a $21 \times 3$ hand skeleton per frame. Frames without valid detections are represented as zeros in the exported sequence. Each video is saved as a \texttt{.pt} file containing the temporal skeleton sequence together with metadata including patient identifier, recording date, view label, and PD stage. Left- and right-hand recordings are processed separately and paired at the patient level.
+The remainder of this chapter describes each stage in detail, in five parts for feature extraction (Sections~\ref{sec:fe1}--\ref{sec:fe5}), followed by feature selection (Section~\ref{sec:fs}) and the joint-correlation / AGCN module (Section~\ref{sec:joint_corr}).
 
-\section{Time-Series Feature Extraction}
+\section{Feature Extraction~(1/5): Frequency and Clarity}
+\label{sec:fe1}
 
-\subsection{Patient-Level Pairing and Normalization}
+\subsection*{Observation}
 
-For each patient, the left- and right-hand sequences are represented as tensors of shape $(T, 21, 3)$, where $T$ denotes the number of frames. Amplitude-related features are normalized by the median Euclidean distance between landmark 0 (wrist) and landmark 9 (middle-finger MCP), thereby reducing variation due to hand size and camera scale.
+Two qualitative observations motivate the frequency and clarity descriptors. First, severe PD patients tend to perform the pronation-supination task at a markedly slower pace; thus rotation \emph{frequency} carries a strong discriminative signal. Second, PD patients often exhibit irregular rhythm, with rotations that alternate between fast and slow within a single recording; thus the \emph{stability} of the rotation, captured below as a clarity index, is also informative.
 
-\subsection{Autocorrelation-Based Frequency and Clarity}
+\subsection*{Method}
 
-For each hand, joint, and spatial axis, the coordinate trajectory is treated as a one-dimensional signal $s(t)$. Two autocorrelation variants are computed:
-
-\begin{enumerate}
-    \item raw autocorrelation, and
-    \item detrended autocorrelation after removal of a degree-10 polynomial trend.
-\end{enumerate}
-
-The signal is mean-centered before autocorrelation is computed. Let $\tau$ denote the lag of the first positive-lag peak. The corresponding movement frequency is estimated as
+\textbf{Polynomial detrend.} For each joint--axis trajectory, a low-frequency drift term is first fit by a polynomial and subtracted from the raw signal. This removes slow drifts introduced by gradual changes in hand position or camera framing. Conceptually,
 \begin{equation}
-    f = \frac{f_s}{\tau},
-\end{equation}
-where $f_s=60$ Hz is the sampling rate. The clarity score is defined as the ratio between the first positive-lag peak and the zero-lag autocorrelation value. Although both raw and detrended versions are computed, only the detrended descriptors are retained in the exported feature set:
-\begin{enumerate}
-    \item frequency without trend, and
-    \item clarity without trend.
-\end{enumerate}
-
-These descriptors characterize movement periodicity and rhythmic regularity.
-
-\subsection{Amplitude Features}
-
-In addition to frequency and clarity, four amplitude representations are computed for each trajectory after optional normalization and detrending:
-
-\begin{enumerate}
-    \item \textbf{Cycle amplitude}, defined from alternating peak-valley pairs;
-    \item \textbf{rolling peak-to-peak amplitude};
-    \item \textbf{rolling RMS amplitude}; and
-    \item \textbf{Hilbert amplitude}, obtained from the analytic signal.
-\end{enumerate}
-
-For each amplitude representation, three summary statistics are recorded: mean, median, and standard deviation. Consequently, each axis contributes $4 \times 3 = 12$ amplitude features.
-
-\subsection{Final Hand-Crafted Feature Set}
-
-Features are extracted from both hands, all 21 joints, and all three spatial axes. Each axis-specific trajectory contributes:
-
-\begin{enumerate}
-    \item 2 autocorrelation features: frequency without trend and clarity without trend; and
-    \item 12 amplitude statistics derived from cycle amplitude, rolling peak-to-peak amplitude, rolling RMS, and Hilbert amplitude.
-\end{enumerate}
-
-Thus, each trajectory contributes 14 features. The total dimensionality is
-\begin{equation}
-    2 \times 21 \times 3 \times 14 = 1764.
+    \text{Wave} + \text{Trend} \xrightarrow{\text{polynomial detrend}} \text{Detrend Result}.
 \end{equation}
 
-The resulting feature table is stored together with patient metadata, including date, PD stage, medication status, and dataset source.
+\textbf{Autocorrelation.} Let $r(\tau)$ denote the autocorrelation of the detrended signal. Two scalar descriptors are computed:
+\begin{itemize}
+    \item \textbf{Frequency.} The frame index of the first positive-lag peak of $r(\tau)$, which corresponds to the dominant period of rotation.
+    \item \textbf{Clarity.} The height of the first peak divided by the value of $r(\tau)$ at lag zero. A clarity value close to one indicates a highly periodic signal, whereas a low clarity value reflects irregular rhythm.
+\end{itemize}
+
+\section{Feature Extraction~(2/5): Cycle Amplitude and Rolling Peak-to-Peak}
+\label{sec:fe2}
+
+\subsection*{Observation}
+
+PD patients typically show a gradual reduction of movement amplitude over the course of a single recording, and instantaneous amplitudes may fluctuate from cycle to cycle. The amplitude features described in Sections~\ref{sec:fe2}--\ref{sec:fe3} are designed to capture these patterns through four complementary mathematical constructions.
+
+\subsection*{Method}
+
+\textbf{Cycle by cycle.} Iterating over every frame of the detrended trajectory, the algorithm flags each frame as a local maximum or minimum. Adjacent peaks and valleys are then paired, and the absolute amplitude of each rotation cycle is recorded, producing a derived time series whose value at each pair location is the instantaneous one-cycle amplitude.
+
+\textbf{Rolling peak-to-peak.} A sliding window traverses the trajectory and, at each window position, records the difference between the local maximum and the local minimum within the window. The resulting time series captures the local range of motion without requiring exact peak/valley detection.
+
+\section{Feature Extraction~(3/5): Rolling RMS and Hilbert Envelope}
+\label{sec:fe3}
+
+\textbf{Rolling RMS.} A sliding window computes the root-mean-square value of the (zero-mean) detrended signal within the window, providing a smoothed estimate of local movement energy. Among the four amplitude representations, this is the most robust to short-lived noise spikes.
+
+\textbf{Hilbert envelope.} The instantaneous amplitude envelope is obtained from the analytic signal. The raw waveform is treated as the cosine component of an unknown amplitude--phase representation; the Hilbert transform produces the corresponding $90^{\circ}$-shifted (sine) component; and the magnitude of the resulting complex analytic signal yields the envelope. The envelope thus represents the instantaneous amplitude of the original oscillation, sharing the same phase progression but stripped of its oscillatory content.
+
+\section{Feature Extraction~(4/5): Comparison of the Four Amplitude Representations}
+\label{sec:fe4}
+
+For each amplitude representation, three summary statistics are recorded: \emph{mean}, \emph{median}, and \emph{standard deviation}. Together, the four amplitude families therefore contribute $4 \times 3 = 12$ descriptors per joint axis.
+
+The four representations are designed to be complementary. Table~\ref{tab:amplitude_comparison} summarizes the qualitative trade-offs that motivate their joint inclusion.
+
+\begin{table}[H]
+    \centering
+    \caption{Comparison of the four amplitude representations}
+    \label{tab:amplitude_comparison}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Property & Cycle by cycle & Rolling peak-to-peak & Rolling RMS & Hilbert envelope \\
+        \hline
+        Physical meaning   & Per-cycle displacement & Local range of motion & Local movement energy & Instantaneous envelope \\
+        Noise sensitivity  & Highest                & High                  & Low                   & High \\
+        Smoothness         & Low                    & Medium                & Highest               & High \\
+        Movement aspect    & Single-cycle behaviour & Local activity        & Overall decay trend   & Overall decay trend \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\section{Feature Extraction~(5/5): Final Feature-Vector Dimensionality}
+\label{sec:fe5}
+
+Feature extraction is applied independently to every combination of hand, joint, and spatial axis. Per subject, the resulting feature vector therefore has the following dimensionality:
+\begin{enumerate}
+    \item Two hands, each with 21 joints and 3 spatial axes, yielding $2 \times 21 \times 3 = 126$ trajectories.
+    \item Per trajectory, two autocorrelation features (frequency and clarity) and twelve amplitude features.
+    \item Total dimensionality:
+    \begin{equation}
+        2 \times 21 \times 3 \times (2 + 4 \times 3) = 1764.
+        \label{eq:feature_dim}
+    \end{equation}
+\end{enumerate}
 
 \section{Feature Selection}
+\label{sec:fs}
 
-Because the extracted feature space is high-dimensional relative to the cohort size, feature selection is performed within each training fold. Three strategies are considered.
+\subsection*{Motivation}
 
-\subsection{ANOVA F-test via SelectKBest}
+The feature dimensionality of $1{,}764$ greatly exceeds the number of available samples in either clinical cohort. Training a classifier directly on the full feature vector therefore tends to overfit, and the resulting model is hard to interpret. To mitigate this, three feature-selection methods are evaluated.
 
-The first method applies \texttt{SelectKBest} with \texttt{f\_classif}. After median imputation and standardization, features are ranked by the ANOVA F-statistic, and the top-$k$ features are retained.
+\subsection*{Methods}
 
-\subsection{L1-Regularized Logistic Regression}
+\textbf{ANOVA F-value.} For each feature, the ratio between the between-class variance (PD vs healthy) and the within-class variance is computed. Features with the largest F-values are retained.
 
-The second method uses L1-regularized logistic regression with \texttt{solver=liblinear}, \texttt{class\_weight=balanced}, and \texttt{C=0.5}. Features are ranked by the absolute coefficient magnitude, and the top-$k$ features are selected.
+\textbf{L1-regularized Logistic Regression.} An L1 penalty is added to the Logistic Regression loss, which shrinks the coefficients of unimportant features all the way to zero. Features whose absolute coefficient is non-zero (or, equivalently, whose absolute coefficient is among the largest) are retained.
 
-\subsection{XGBoost Feature Importance}
+\textbf{XGBoost feature importance.} An XGBoost model is fit on the training fold and the gain-based importance of each feature, averaged over all decision-tree split points, is used as the selection criterion.
 
-The third method fits an \texttt{XGBClassifier} on the training fold and ranks features according to gain-based importance. Class imbalance is handled by
+\subsection*{Qualitative Comparison}
+
+The three methods differ in how they account for feature interactions and in how interpretable the resulting selection is. Table~\ref{tab:fs_methods_comparison} summarizes this contrast.
+
+\begin{table}[H]
+    \centering
+    \caption{Qualitative comparison of the three feature-selection methods}
+    \label{tab:fs_methods_comparison}
+    \small
+    \setlength{\tabcolsep}{6pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.32\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Method & ANOVA F-value & L1-Logistic Regression & XGBoost \\
+        \hline
+        Feature-interaction modelling & None              & Linear relationships    & Decision-tree combinations \\
+        Interpretability              & Direct statistical significance & Clear linear weights    & Complex tree-based logic \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\section{Joint-Correlation Information: Pairwise Correlation and AGCN}
+\label{sec:joint_corr}
+
+\subsection*{Observation}
+
+Some pairs of joints are not directly connected in the anatomical skeleton, but their motion may nevertheless be tightly coupled (or, conversely, abnormally decoupled) under PD. Encoding such inter-joint relationships explicitly can therefore reveal disease-related patterns that single-joint descriptors miss.
+
+\subsection*{Pairwise Correlation Features}
+\label{sec:joint_corr_corr}
+
+A first, hand-crafted, way of encoding inter-joint relationships is to add the Pearson correlation between feature trajectories of pairs of joints as additional features. For each pair of joint axes $(i,j)$ with $i \neq j$, the correlation
 \begin{equation}
-    \texttt{scale\_pos\_weight}=\frac{N_{\text{negative}}}{N_{\text{positive}}}.
+    r_{ij} = \frac{\sum_{t} (s_i(t) - \bar s_i)(s_j(t) - \bar s_j)}
+                  {\sqrt{\sum_{t} (s_i(t) - \bar s_i)^{2}} \, \sqrt{\sum_{t} (s_j(t) - \bar s_j)^{2}}}
 \end{equation}
-The top-$k$ features are then used for downstream classification.
+is computed over the entire recording. Within-hand and between-hand correlations are both retained. This descriptor, however, only carries information about \emph{two} joints at a time.
 
-\section{Adaptive Graph Convolutional Network}
+\subsection*{AGCN}
+\label{sec:joint_corr_agcn}
 
-\subsection{Skeleton-Based AGCN}
+A second, learned, way of encoding inter-joint relationships is to use a graph convolutional network. The AGCN reviewed in Section~\ref{sec:rw_agcn} trains an adaptive adjacency that captures motion-based joint relationships across \emph{all} joints in both hands jointly. Compared with the pairwise correlation descriptors above, the AGCN can in principle express higher-order, jointly-defined patterns of inter-joint coupling.
 
-The skeleton-based AGCN represents each sample as a 42-node graph, with 21 nodes for the left hand and 21 nodes for the right hand. The graph follows the MediaPipe anatomical topology, including finger chains, palm connections, self-loops, and an inter-hand wrist connection. The input tensor has shape $(N, C, T, V)$, where $C=3$ denotes xyz coordinates and $V=42$.
-
-Each block combines graph convolution with temporal convolution. The spatial graph starts from a fixed adjacency matrix and is augmented by a learnable adaptive term:
-\begin{equation}
-    \mathbf{A}_{\text{eff}} = \mathbf{A}_{\text{base}} + \mathbf{B},
-\end{equation}
-where $\mathbf{A}_{\text{base}}$ is the normalized physical hand graph and $\mathbf{B}$ is trainable. An attention branch further modulates adjacency weights in a sample-dependent manner, allowing the model to preserve anatomical priors while learning task-specific joint relations.
-
-\subsection{FeatureAGCNStyle for Hand-Crafted Features}
-
-In addition to raw skeleton modeling, \texttt{FeatureAGCNStyle} treats the 1764-dimensional hand-crafted vector as a graph-structured representation. The feature vector is reshaped into 42 nodes, each corresponding to a left- or right-hand joint. Since
-\begin{equation}
-    1764 / 42 = 42,
-\end{equation}
-each node is represented by a 42-dimensional descriptor.
-
-The model first projects each node descriptor into a latent space and then performs graph propagation. Two adjacency construction modes are implemented:
-
-\begin{enumerate}
-    \item \textbf{Separate block}, where each graph block learns an independent adjacency perturbation; and
-    \item \textbf{Same block}, where adjacency is derived from transformation weights through a Mahalanobis-type distance and a Gaussian kernel.
-\end{enumerate}
-
-After graph propagation, node features are averaged across joints to form a global graph embedding. This embedding can be classified directly or exported for external classifiers such as XGBoost. Accordingly, the AGCN framework in this study serves both sequence-based skeleton modeling and graph-structured modeling of hand-crafted joint-wise features.
+The two approaches are therefore presented as a deliberate contrast: pairwise correlation provides a simple hand-crafted baseline that only carries two-joint interactions, while AGCN learns a global, data-driven, multi-joint relational structure. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.

@@ -1,13 +1,34 @@
 % !TeX root = ../main.tex
 
-\chapter{Conclusions and Future Work }
+\chapter{Conclusions and Future Work}
+\label{chap:conclusion}
 
-\section{出師表}
+\section{Conclusions}
 
-\lipsum
+This thesis investigated the binary classification of Parkinson's Disease from short hand-rotation videos recorded with everyday smartphones or tablets. A four-stage pipeline was constructed, consisting of MediaPipe-based 3D hand keypoint extraction, hand-crafted kinematic features (frequency, clarity, and four complementary amplitude representations), three feature-selection strategies (ANOVA F-value, L1-regularized Logistic Regression, and XGBoost gain-based importance), and a comparison of four downstream classifiers (Logistic Regression, Random Forest, XGBoost, and AGCN). Five experiments were carried out on two NTUH clinical cohorts (the 2020 and 2025 cohorts), with both LOOCV within-cohort validation and 2020-to-2025 cross-cohort transfer evaluation.
 
-\section{短歌行}
+The principal findings are summarized as follows:
 
-\lipsum
+\begin{enumerate}
+    \item \textbf{The motor reserve phenomenon makes left-hand features highly impactful for PD prediction.} Across both cohorts, left-hand-only models consistently outperformed right-hand-only and bilateral models, and the top-10 features were dominated by the left hand (25:5 and 19:11 in favour of the left hand). This is qualitatively consistent with the motor reserve hypothesis: in a predominantly right-handed cohort, the non-dominant left hand carries less compensatory reserve and therefore reveals bradykinesia more clearly during the pronation-supination task.
 
-This is just to test \cite{Krasnogor2004e} the cite function.
+    \item \textbf{Adding pairwise joint-correlation features improves performance only marginally.} Augmenting the bilateral feature set with explicit pairwise Pearson correlation features did not consistently outperform the strongest single-side baseline. Within cohort, the correlation-augmented configurations were on par with or slightly worse than the left-hand XGB Importance baseline; in cross-cohort transfer, AUROC improved only marginally (from $0.65$--$0.66$ to $0.68$) and without a stable improvement in accuracy or F1-score.
+
+    \item \textbf{AGCN markedly improves within-cohort performance but does not transfer.} The AGCN reached AUROCs of $0.97$--$0.98$ within each cohort under LOOCV. In cross-cohort transfer, however, AUROC collapsed to $0.53$--$0.62$, comparable to or worse than the best hand-crafted feature configurations.
+
+    \item \textbf{Adaptive graph topologies are highly dependent on the training distribution.} Because the AGCN learns its joint-wise adjacency from the training cohort itself, the discovered graph topology does not transfer across years: the structure that is optimal for the 2020 protocol and population is no longer optimal for the 2025 protocol and population.
+
+    \item \textbf{Small clinical datasets exacerbate the domain-shift problem.} Under LOOCV, every fold trains on a near-identical distribution, so even high-capacity models such as AGCN can fit it well. Under cross-cohort transfer, however, the limited sample size leaves no headroom for the model to learn invariant patterns, and the resulting overfitting magnifies the domain shift between the 2020 and 2025 cohorts.
+\end{enumerate}
+
+\section{Future Work}
+
+Based on the limitations and findings above, three directions are identified for future investigation:
+
+\begin{enumerate}
+    \item \textbf{Continue data collection to evaluate cross-year stability.} Larger, longitudinally collected cohorts would enable a more reliable estimate of cross-year generalization and would create headroom for higher-capacity models such as AGCN to overcome small-sample overfitting.
+
+    \item \textbf{Lightweight the model and deploy it at the edge.} Because MediaPipe is designed for mobile hardware, the entire feature-extraction and classification pipeline can in principle be lightweighted (e.g., via quantization or distillation) and deployed on the user's device. This would enable real-time, at-home PD monitoring without the need for a server round trip.
+
+    \item \textbf{Explore multi-modal large models combining hand gesture, gait, and voice.} PD affects multiple motor and non-motor modalities. Combining hand-rotation video with gait video and voice recordings within a unified multi-modal large model is a promising direction: the complementarity of these modalities, together with the benefits of foundation-model pretraining, could mitigate the small-cohort overfitting that limited the AGCN in this study.
+\end{enumerate}

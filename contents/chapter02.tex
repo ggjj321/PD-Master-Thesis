@@ -1,26 +1,157 @@
 % !TeX root = ../main.tex
 
 \chapter{Related Work}
+\label{chap:related}
 
-\section{出師表}
+This chapter reviews four lines of prior work that directly informed the design of the proposed system: (i) video-based bradykinesia assessment of hand movements, covering two complementary systems, (ii) the MediaPipe Hands framework for skeleton extraction, (iii) the motor reserve hypothesis explaining inter-hand asymmetry, and (iv) the Adaptive Graph Convolutional Neural Network.
 
-臣亮言：先帝創業未半，而中道崩殂。今天下三分，益州疲弊，此誠危急存亡之秋也。然侍衛之臣，不懈於內；忠志之士，忘身於外者，蓋追先帝之殊遇，欲報之於陛下也。誠宜開張聖聽，以光先帝遺德，恢弘志士之氣；不宜妄自菲薄，引喻失義，以塞忠諫之路也。宮中府中，俱為一體，陟罰臧否，不宜異同。若有作姦犯科，及為忠善者，宜付有司，論其刑賞，以昭陛下平明之治，不宜篇私，使內外異法也。\par
+\section{Video-Based Bradykinesia Assessment of Hand Movements}
+\label{sec:rw_video_bradykinesia}
 
-侍中、侍郎郭攸之、費褘、董允等，此皆良實，志慮忠純，是以先帝簡拔以遺陛下。愚以為宮中之事，事無大小，悉以咨之，然後施行，必能裨補闕漏，有所廣益。將軍向寵，性行淑均，曉暢軍事，試用於昔日，先帝稱之曰「能」，是以眾議舉寵為督。愚以為營中之事，悉以咨之，必能使行陣和睦，優劣得所。親賢臣，遠小人，此先漢所以興隆也；親小人，遠賢臣，此後漢所以傾頹也。先帝在時，每與臣論此事，未嘗不歎息痛恨於桓、靈也。侍中、尚書、長史；參軍，此悉貞良死節之臣也，願陛下親之信之，則漢室之隆，可計日而待也。
+Computer-vision-based quantification of Parkinsonian bradykinesia has attracted growing interest as a non-invasive and low-cost complement to wearable sensors and subjective clinical rating. Two representative systems are reviewed here. Monje et al.~\cite{monje2021remote} established that hand-crafted kinematic features derived from a conventional laptop webcam can discriminate PD patients from healthy subjects with near-perfect accuracy in a controlled single-site setting. Morinan et al.~\cite{morinan2023computer} subsequently demonstrated that an analogous feature-engineering pipeline generalises to a large, heterogeneous multi-site population and supports composite whole-body severity scoring. Together, these works delineate the feasibility and clinical potential of the consumer-video paradigm adopted in the present thesis.
 
-臣本布衣，躬耕於南陽，苟全性命於亂世，不求聞達於諸侯。先帝不以臣卑鄙，猥自枉屈，三顧臣於草廬之中，諮臣以當世之事，由是感激，遂許先帝以驅馳。後值傾覆，受任於敗軍之際，奉命於危難之間，爾來二十有一年矣！先帝知臣謹慎，故臨崩寄臣以大事也。受命以來，夙夜憂勤，恐託付不效，以傷先帝之明。故五月渡瀘，深入不毛。今南方已定，兵甲已足，當獎率三軍，北定中原，庶竭駑鈍，攘除奸凶，興復漢室，還於舊都；此臣所以報先帝而忠陛下之職分也。至於斟酌損益，進盡忠言，則攸之、褘、允之任也。
+\subsection{Webcam-Based Proof of Concept (Monje et al.)}
+\label{subsec:rw_monje}
 
-願陛下託臣以討賊興復之效；不效，則治臣之罪，以告先帝之靈。若無興德之言，則戮允等，以彰其慢。陛下亦宜自課，以諮諏善道，察納雅言，深追先帝遺詔，臣不勝受恩感激。
+Monje et al.~\cite{monje2021remote} evaluated three MDS-UPDRS Part~III bradykinesia tasks---finger tapping, hand open/close movements, and wrist pronation-supination---both unilaterally and bilaterally. A consecutive cohort of 22 PD patients and 20 healthy subjects (HSs) was recorded using the built-in $640\times426$\,px, 30\,fps webcam of a standard laptop, with each trial lasting 12\,s and requiring no dedicated equipment. An independent validation set of 12 additional clips (6 PD, 6 HS) was reserved for final evaluation.
 
-今當遠離，臨表涕泣，不知所云。
+Skeletal joint coordinates were obtained through a two-stage pipeline: an SSD-based hand detector localised the hand region in each frame, after which OpenPose extracted 2-D keypoint positions. Four kinematic descriptors were derived per hand per task from the resulting trajectories: mean amplitude, standard deviation of amplitude, movement speed (peaks per second), and a fatigue index defined as the difference between the maximum and minimum values of the upper envelope of the filtered signal. Three classifiers---Logistic Regression (LR), Gaussian Naive Bayes (NB), and Random Forest (RF)---were evaluated under 4-fold cross-validation. To exploit the inter-hand asymmetry characteristic of PD, left and right feature vectors were concatenated into a single bilateral input.
 
-\section{短歌行}
+On the independent validation set, the pronation-supination task yielded the strongest discrimination among all three tasks. Under 4-fold cross-validation, the bilateral feature vector consistently outperformed either unilateral variant, confirming the diagnostic value of inter-hand asymmetry. On the held-out validation clips, LR achieved an AUROC of 0.944 and NB achieved 0.889---both substantially higher than the corresponding results for finger tapping and hand open/close movements---demonstrating near-perfect binary PD-versus-healthy classification from a single 12\,s pronation-supination trial. Movement speed (peaks per second) was the single most discriminative kinematic descriptor for the task, a finding corroborated by a significant negative correlation with inertial measurement unit (IMU) ratings ($r = -0.67$, $p < 0.05$), which established concurrent validity between the video-derived and sensor-derived measures of rotational velocity.
 
-對酒當歌，人生幾何！譬如朝露，去日苦多。
-慨當以慷，憂思難忘。何以解憂？唯有杜康。
-青青子衿，悠悠我心。但為君故，沉吟至今。
-呦呦鹿鳴，食野之苹。我有嘉賓，鼓瑟吹笙。
-明明如月，何時可掇？憂從中來，不可斷絕。
-越陌度阡，枉用相存。契闊談宴，心念舊恩。
-月明星稀，烏鵲南飛。繞樹三匝，何枝可依？
-山不厭高，海不厭深。周公吐哺，天下歸心。
+\subsection{Large-Scale Multi-Site Quantification (Morinan et al.)}
+\label{subsec:rw_morinan}
+
+Whereas Monje et al.\ addressed a binary PD-versus-healthy discrimination problem at a single site, clinical deployment demands a system capable of estimating fine-grained severity levels across heterogeneous patient populations and diverse recording environments. Morinan et al.~\cite{morinan2023computer} addressed this challenge by constructing a large multi-site dataset and extending kinematic-feature modelling to whole-body bradykinesia.
+
+The study covered five MDS-UPDRS Part~III items assessed bilaterally---finger tapping (3.4), hand movement (3.5), pronation-supination (3.6), toe tapping (3.7), and leg agility (3.8)---with individual item scores (0--4) aggregated into a composite bradykinesia score ranging from 0 to 40. A total of 1156 MDS-UPDRS assessments from 628 PD patients were collected across five independent clinical and research sites in the United Kingdom and the United States (DCMN, NRC, DRC, PDMDC, TSL), conducted by 15 different assessors and yielding 10{,}823 ratings in total. All videos were captured using consumer-grade smartphones and tablets (KELVIN-CLINIC\texttrademark{} app) at approximately $1080\times1920$\,px and 30\,fps during routine clinical appointments, with no manual selection or filtering applied.
+
+Pose estimation was performed using OpenPose, which extracted 25 body and 21 hand keypoints per frame. A task-specific time-series signal was constructed for each item from the relevant keypoints: the Euclidean distance between the thumb tip and the index finger tip for finger tapping, the convex-hull area of the four fingertip keypoints for hand movement, and the angular velocity of the thumb-to-little-finger vector for pronation-supination. From each signal, 11 kinematic features were computed across four MDS-UPDRS-aligned dimensions: \emph{speed} (mean and coefficient of variation of action frequency and inter-peak velocity), \emph{amplitude} (mean and coefficient of variation of peak amplitude), \emph{hesitations} (period range, inversion rate, and signal roughness), and \emph{decrementing signal} (percentage change in mean amplitude and mean velocity between the first and last thirds of the trial). An ordinal random-forest classifier, internally decomposed into four binary classifiers, was trained independently for each item under 10-fold stratified cross-validation, with SMOTE applied within each training fold to mitigate class imbalance.
+
+The composite bradykinesia score achieved high agreement with clinician ratings, yielding an intraclass correlation coefficient (ICC) of 0.74 ($p < 0.001$, $n = 949$) that remained consistent across four of the five sites. At the item level, the ordinal classifier attained a mean balanced accuracy of 45\% (chance level 20\%) and a mean acceptable accuracy of 86\% for predictions within $\pm 1$ of the ground-truth label; a binary classifier distinguishing low ($\{0,1\}$) from high ($\{2,3,4\}$) severity achieved 75\% mean accuracy and an AUC-ROC of 0.81.
+
+Among the five assessed items, pronation-supination (item 3.6) was the most challenging to quantify automatically. Its ordinal balanced accuracy of 40\% was the lowest of all items, and the corresponding binary accuracy (73\%) and AUC-ROC (0.75) were similarly below the cross-item averages. The authors attributed part of this difficulty to the angular-velocity signal construction: although using the thumb-to-little-finger vector angle mitigates absolute scale differences across recording distances, the rotational motion is inherently more susceptible to partial occlusion and perspective projection artefacts than the planar amplitude signals used for finger tapping or hand movement. Notwithstanding these challenges, the system operated without additional dedicated hardware or modification of existing clinical workflows.
+
+\subsection{Synthesis}
+\label{subsec:rw_video_synthesis}
+
+Table~\ref{tab:video_pd_comparison} summarises the two systems along the dimensions most relevant to this thesis.
+
+\begin{table}[H]
+  \centering
+  \caption{Comparison of two video-based PD bradykinesia assessment systems}
+  \label{tab:video_pd_comparison}
+  \small
+  \setlength{\tabcolsep}{6pt}
+  \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.22\linewidth}
+                               >{\raggedright\arraybackslash}X
+                               >{\raggedright\arraybackslash}X}
+    \hline
+    Aspect & Monje et al.~\cite{monje2021remote} & Morinan et al.~\cite{morinan2023computer} \\
+    \hline
+    Output granularity    & Binary (PD vs.\ HS) & Composite score 0--40 (5-level per item) \\
+    Body coverage         & Hand movements only & Whole-body (5 items, bilateral) \\
+    Feature type          & Hand-crafted kinematic (amplitude, speed, fatigue) & Hand-crafted kinematic (speed, amplitude, hesitations, decrement) \\
+    Dataset scale         & 22 PD + 20 HS, single site & 628 PD patients, 5 sites, 10{,}823 ratings \\
+    Camera requirement    & Standard webcam & Consumer smartphone / tablet \\
+    Best overall result   & AUROC 0.944 (LR, PS task, validation set) & Composite ICC 0.74; mean acceptable accuracy 86\% \\
+    Pronation Supination task (item 3.6)    & AUROC 0.944 (LR) / 0.889 (NB); binary PD vs.\ HS & Binary acc.\ 73\%, AUC-ROC 0.75; ordinal balanced acc.\ 40\%, acceptable acc.\ 81\% \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+Two observations from this comparison directly inform the design of the proposed system. First, both works confirm that consumer-level video hardware is sufficient for reliable bradykinesia assessment, motivating the exclusive use of a standard webcam in this thesis. Second, the generalisation demonstrated by Morinan et al.\ across five independent sites establishes that hand-crafted kinematic features can serve as a strong and interpretable baseline---one against which the learned graph-based temporal representations introduced in this thesis are ultimately compared.
+
+\section{MediaPipe Hands}
+\label{sec:rw_mediapipe}
+
+The skeleton-extraction module of this thesis is built on MediaPipe Hands~\cite{zhang2020mediapipe}, which runs on top of the MediaPipe perception framework introduced by Lugaresi et al.~\cite{lugaresi2019mediapipe}. MediaPipe is a Google open-source framework that represents a perception pipeline as a directed graph of modular \emph{calculators}---reusable computation nodes exchanging typed, time-stamped data packets over directed streams. This graph-based architecture allows all inference and processing steps to be specified declaratively in a pipeline configuration, and the same graph can be deployed without modification across desktop, mobile, and embedded platforms. Because calculators share a common interface centred on time-series data, they can also be combined across successive applications, enabling rapid prototyping and iterative refinement of perception pipelines.
+
+MediaPipe Hands instantiates this framework with a two-stage hand tracking solution optimised for real-time, on-device execution. Given an input RGB frame, a lightweight palm detector first localises the hand region; the corresponding image crop is then passed to a keypoint regression model that returns 21 anatomically defined hand landmarks with normalised $(x,y,z)$ coordinates per frame. The $x$ and $y$ components are normalised by image dimensions, while the $z$ value encodes approximate depth relative to the wrist joint, enabling three-dimensional trajectory analysis without a dedicated depth sensor. Inference runs entirely on the CPU or GPU of a consumer device, with the framework's scheduler managing parallel execution across calculators to sustain real-time frame rates.
+
+Table~\ref{tab:skeleton_comparison} contrasts MediaPipe with OpenPose~\cite{shi2019skeleton}, the dominant alternative used in the two related studies discussed above.
+
+\begin{table}[H]
+    \centering
+    \caption{Comparison of two skeleton extraction frameworks}
+    \label{tab:skeleton_comparison}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.35\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Property & MediaPipe Hands & OpenPose \\
+        \hline
+        Underlying framework     & Graph-based pipeline (MediaPipe)      & Standalone library \\
+        Maintenance / stability  & Actively maintained by Google         & Open-source community, more complex environment setup \\
+        Output dimensionality    & 3D coordinates (21 landmarks)         & 2D coordinates \\
+        Deployment               & Cross-platform, on-device CPU/GPU     & Requires environment configuration \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+For these reasons, MediaPipe Hands is adopted as the skeleton-extraction tool in this thesis.
+
+\section{Motor Reserve and Inter-Hand Asymmetry}
+\label{sec:rw_motor_reserve}
+
+Chung et al.~\cite{chung2020motor} reviewed the concept of \emph{motor reserve} (MR) as a framework for explaining individual differences in Parkinsonian motor deficits that cannot be accounted for by the degree of nigrostriatal dopaminergic depletion alone. The central premise is that, under equivalent pathological burden, body parts used more frequently in daily life accumulate greater motor reserve, enabling the corresponding cortical and subcortical networks to compensate for early nigrostriatal damage and thereby mask the clinical expression of bradykinesia. Conversely, less-frequently used body parts possess lower reserve, and pathological signs emerge earlier and with greater prominence.
+
+This principle carries a specific implication for bilateral hand assessment in PD. In a predominantly right-handed cohort, the dominant (right) hand benefits from higher accumulated motor reserve and is more likely to exhibit compensated, attenuated motor deficits at a given stage of pathology. The non-dominant (left) hand, carrying less reserve, tends to manifest bradykinesia more saliently and at an earlier disease stage. Table~\ref{tab:motor_reserve_summary} summarises this behavioural contrast.
+
+\begin{table}[H]
+    \centering
+    \caption{Behavioural contrast between dominant and non-dominant hands under the motor reserve hypothesis}
+    \label{tab:motor_reserve_summary}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Aspect & Dominant hand (usually right) & Non-dominant hand (usually left) \\
+        \hline
+        Daily-use frequency        & High                                  & Low \\
+        Accumulated motor reserve  & High                                  & Low \\
+        Symptom expression         & Often masked by cortical compensation & Clinically more salient \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+This asymmetry provides the principal qualitative explanation for the empirically stronger and more transferable classification performance of left-hand features observed in Chapter~\ref{chap:results}: because the non-dominant hand is less protected by motor reserve, its kinematic trajectory reflects the underlying pathology more directly, yielding features that are more discriminative and more consistent across subjects.
+
+\section{Adaptive Graph Convolutional Neural Networks}
+\label{sec:rw_agcn}
+
+The graph-based modelling component of this thesis is based on the Adaptive Graph Convolutional Neural Network (AGCN) proposed by Li et al.~\cite{li2018adaptive}, with skeleton-specific refinements from Shi et al.~\cite{shi2019skeleton}. Standard Graph Convolutional Networks (GCNs)~\cite{yan2018spatial} operate on a fixed, pre-defined graph Laplacian that encodes only the physical connectivity of the skeleton. AGCN relaxes this constraint by introducing a learnable residual graph constructed from data during training, enabling the network to discover task-relevant joint relationships that the anatomical topology alone cannot express.
+
+\subsection{SGC-LL Layer and Distance Metric Learning}
+
+The core building block of AGCN is the Spectral Graph Convolution with Laplacian Learning (SGC-LL) layer. Rather than assuming a shared, fixed Laplacian, SGC-LL parameterises the pairwise similarity between nodes so that the graph topology itself becomes trainable. Given node feature vectors $x_i$ and $x_j$, a generalised Mahalanobis distance is defined as
+\begin{equation}
+    \mathbb{D}(x_i, x_j) = \sqrt{(x_i - x_j)^{T} M (x_i - x_j)}, \qquad M = W_d W_d^{T},
+    \label{eq:agcn_distance}
+\end{equation}
+where $W_d \in \mathbb{R}^{d \times d}$ is a learnable projection matrix shared across all training samples. Learning complexity is thereby $\mathcal{O}(d^2)$, independent of graph size. The pairwise distances are converted into soft adjacency weights via a Gaussian kernel,
+\begin{equation}
+    \tilde{A}_{ij} = \exp\!\left(-\frac{\mathbb{D}(x_i, x_j)^{2}}{2\sigma^{2}}\right),
+\end{equation}
+yielding a dense, data-dependent adjacency matrix $\tilde{A}$ whose entries reflect movement similarity rather than physical connectivity. After normalisation, $\tilde{A}$ defines the residual graph Laplacian $L_{\mathrm{res}}$.
+
+\subsection{Residual Graph Laplacian and Feature Re-parameterisation}
+
+A key observation in Li et al.\ is that the original skeleton graph Laplacian $L$ already encodes a large amount of useful structural information, but cannot capture virtual joint connections that are absent from the intrinsic graph. AGCN therefore assumes that the optimal graph Laplacian $\hat{L}$ is a small perturbation of $L$:
+\begin{equation}
+    \hat{L} = L + \alpha\, L_{\mathrm{res}},
+    \label{eq:agcn_laplacian}
+\end{equation}
+where $\alpha$ controls the influence of the learned residual. Instead of learning $\hat{L}$ directly---which would cost $\mathcal{O}(N^2)$ per sample---the network learns only $L_{\mathrm{res}}$ through the distance metric of Eq.~\ref{eq:agcn_distance}. Spectral convolution is then conducted on $\hat{L}$, allowing each layer to simultaneously respect the anatomical hand topology and the learned motion-based connectivity.
+
+To capture both intra- and inter-vertex feature interactions within a single layer, the SGC-LL output is further augmented with a learnable linear transform,
+\begin{equation}
+    Y = U\, g(\Lambda)\, U^{T} X \, W + b,
+\end{equation}
+where $U$ and $\Lambda$ are the eigenvectors and eigenvalues of $\hat{L}$, $g(\Lambda)$ is the spectral filter applied in the Chebyshev expansion, and $W \in \mathbb{R}^{d \times d}$ and $b$ are trainable weights shared across all samples in the batch.
+
+\subsection{Network Architecture}
+
+The full AGCN stacks multiple SGC-LL layer combinations, each comprising one SGC-LL layer, a batch normalisation layer, and a graph max-pooling layer. A residual graph Laplacian is trained independently at each SGC-LL layer; after the subsequent pooling step, the adaptive graph is reused until the next SGC-LL layer retrains a new residual on the transformed feature space. A graph gather layer at the end of the stack aggregates all vertex feature vectors into a single graph-level representation for downstream prediction. A bilateral filtering layer is additionally introduced to regularise activation of the SGC-LL layers and mitigate overfitting from the adaptive residual Laplacian.
+
+This combination of a fixed skeleton prior with a learnable, motion-driven residual provides a principled mechanism for injecting joint-correlation information that goes beyond what hand-crafted pairwise descriptors can express, and motivates the adoption of AGCN as the graph-based experiment in this thesis.
