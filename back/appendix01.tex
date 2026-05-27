@@ -1,5 +1,43 @@
 % !TeX root = ../main.tex
 
-\appendix{A}{Introduction}
-\section{Introduction}
-\section{Further Introduction}
+\appendix{A}{MediaPipe Hand Landmark Reference}
+
+\section{Landmark Index Definitions}
+
+MediaPipe Hands returns 21 three-dimensional keypoints per hand in every video frame. Each landmark is identified by a zero-based integer index. Table~\ref{tab:mediapipe_landmarks} lists the anatomical identity of all 21 landmarks as defined in the MediaPipe Hands documentation. Throughout this thesis, the terms \emph{joint} and \emph{landmark} are used interchangeably to refer to these indices.
+
+\begin{table}[H]
+  \centering
+  \caption{MediaPipe Hands landmark index definitions}
+  \label{tab:mediapipe_landmarks}
+  \small
+  \setlength{\tabcolsep}{10pt}
+  \begin{tabularx}{\linewidth}{c >{\raggedright\arraybackslash}X c >{\raggedright\arraybackslash}X}
+    \hline
+    Index & Landmark Name & Index & Landmark Name \\
+    \hline
+    0  & Wrist                    & 11 & Middle finger PIP joint \\
+    1  & Thumb CMC joint          & 12 & Middle finger DIP joint \\
+    2  & Thumb MCP joint          & 13 & Middle finger tip        \\
+    3  & Thumb IP joint           & 14 & Ring finger MCP joint    \\
+    4  & Thumb tip                & 15 & Ring finger PIP joint    \\
+    5  & Index finger MCP joint   & 16 & Ring finger DIP joint    \\
+    6  & Index finger PIP joint   & 17 & Ring finger tip          \\
+    7  & Index finger DIP joint   & 18 & Little finger MCP joint  \\
+    8  & Index finger tip         & 19 & Little finger PIP joint  \\
+    9  & Middle finger MCP joint  & 20 & Little finger DIP joint  \\
+    10 & \multicolumn{3}{l}{Little finger tip — see index 21 in original ordering; here index 20} \\
+    \hline
+  \end{tabularx}
+\end{table}
+
+\noindent
+\textbf{Joint abbreviations.} CMC = carpometacarpal; MCP = metacarpophalangeal; PIP = proximal interphalangeal; DIP = distal interphalangeal; IP = interphalangeal (thumb only).
+
+\section{Coordinate System and Normalisation}
+
+MediaPipe reports each landmark in a normalised coordinate system. The $x$ and $y$ values are normalised by the image width and height respectively, placing the origin at the top-left corner of the frame. The $z$ value encodes depth relative to the wrist landmark (index 0): negative values indicate a keypoint closer to the camera than the wrist, and positive values indicate one farther away. All three coordinates are treated as dimensionless quantities throughout the feature-extraction pipeline described in Chapter~\ref{chap:methods}.
+
+\section{Bilateral Convention}
+
+In this thesis, the \emph{left-hand} landmarks are indexed $0$--$20$ and the \emph{right-hand} landmarks are indexed $21$--$41$ when both hands are stacked into a single $42$-node bilateral graph. Feature extraction is applied independently to each hand, and the resulting 882-dimensional feature vectors are concatenated to form the 1,764-dimensional bilateral feature vector defined in Equation~\eqref{eq:feature_dim}.

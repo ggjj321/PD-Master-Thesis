@@ -6,75 +6,104 @@
 \section{Overall Pipeline}
 \label{sec:pipeline}
 
-Figure-conceptually, the proposed system is a four-stage pipeline. A raw hand-rotation video is first passed through MediaPipe to obtain a temporal sequence of 21 hand-keypoint coordinates per hand. From the resulting skeletal time series, three families of kinematic descriptors are extracted: \emph{frequency}, \emph{clarity} (rhythmic regularity), and \emph{amplitude}. The resulting high-dimensional feature vector is then reduced by one of three feature-selection strategies, namely ANOVA F-value, L1-regularized Logistic Regression, and XGBoost gain-based importance. Finally, the selected features are fed into one of four machine-learning models: Logistic Regression, Random Forest, XGBoost, or an Adaptive Graph Convolutional Network (AGCN). The output is a single binary label indicating whether the subject is PD or healthy.
-
-\begin{table}[H]
+\begin{figure}[H]
     \centering
-    \caption{Stages of the proposed pipeline}
-    \label{tab:pipeline_overview}
-    \small
-    \setlength{\tabcolsep}{8pt}
-    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.28\linewidth} >{\raggedright\arraybackslash}X}
-        \hline
-        Stage & Module / Output \\
-        \hline
-        Skeleton extraction   & MediaPipe Hands $\rightarrow$ 21-keypoint 3D skeleton per frame \\
-        Feature extraction    & Frequency, Clarity, Amplitude \\
-        Feature selection     & ANOVA F-value / L1-Logistic Regression / XGBoost Importance \\
-        Machine learning      & Logistic Regression / Random Forest / XGBoost / AGCN \\
-        Output                & PD-versus-healthy binary classification \\
-        \hline
-    \end{tabularx}
-\end{table}
+    \includegraphics[width=0.75\linewidth]{figures/method_pipline}
+    \caption{Overview of the proposed four-stage assessment pipeline.}
+    \label{fig:pipeline}
+\end{figure}
 
-The remainder of this chapter describes each stage in detail, in five parts for feature extraction (Sections~\ref{sec:fe1}--\ref{sec:fe5}), followed by feature selection (Section~\ref{sec:fs}) and the joint-correlation / AGCN module (Section~\ref{sec:joint_corr}).
+The proposed system is a four-stage pipeline for automated PD assessment from hand-rotation video, as illustrated in Fig.~\ref{fig:pipeline}. A raw video is first processed by MediaPipe Hands to extract a temporal sequence of 21 three-dimensional keypoint coordinates per hand. Three families of kinematic descriptors---\emph{frequency}, \emph{clarity}, and \emph{amplitude}---are then computed from the resulting skeletal time series. The high-dimensional feature vector is subsequently reduced by one of three feature-selection strategies: ANOVA F-value ranking, L1-regularised logistic regression, or XGBoost gain-based importance. Finally, the selected features are fed into one of four classifiers---logistic regression, random forest, XGBoost, or an adaptive graph convolutional network (AGCN)---which outputs a binary PD-versus-healthy label.
 
-\section{Feature Extraction~(1/5): Frequency and Clarity}
+The remainder of this chapter describes each stage in detail. Section~\ref{sec:fe} covers feature extraction, Section~\ref{sec:fs} describes the three feature-selection methods, and Section~\ref{sec:joint_corr} presents the joint-correlation module and the AGCN branch.
+
+\section{Feature Extraction}
+\label{sec:fe}
+
+Feature extraction is applied independently to every combination of hand, joint, and spatial axis. Both hands are processed, each containing 21 joints recorded along 3 spatial axes, yielding $2 \times 21 \times 3 = 126$ independent trajectories per subject. For each trajectory, frequency, clarity, and four amplitude representations are computed as described in the following subsections.
+
+\subsection{Frequency and Clarity}
 \label{sec:fe1}
 
-\subsection*{Observation}
+Two scalar descriptors---\emph{frequency} and \emph{clarity}---are derived from the autocorrelation of each joint-axis trajectory. Clinically, PD patients tend to perform the pronation-supination task at a slower pace and with irregular rhythm; both descriptors are therefore expected to carry strong discriminative signals.
 
-Two qualitative observations motivate the frequency and clarity descriptors. First, severe PD patients tend to perform the pronation-supination task at a markedly slower pace; thus rotation \emph{frequency} carries a strong discriminative signal. Second, PD patients often exhibit irregular rhythm, with rotations that alternate between fast and slow within a single recording; thus the \emph{stability} of the rotation, captured below as a clarity index, is also informative.
+Before autocorrelation is computed, each trajectory is detrended to remove low-frequency drift caused by gradual hand-position changes or camera motion. A polynomial is fit to the signal and subtracted, yielding a zero-mean detrended waveform, as shown in Fig.~\ref{fig:wave_detrend}.
 
-\subsection*{Method}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/wave_and_trend}
+        \caption{Raw signal with fitted polynomial trend (dashed red).}
+        \label{fig:wave_trend}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/detrend}
+        \caption{Detrended signal after polynomial subtraction.}
+        \label{fig:detrend}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.32\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/autocorrelation}
+        \caption{Autocorrelation with first positive-lag peak.}
+        \label{fig:autocorr}
+    \end{subfigure}
+    \caption{Polynomial detrending and autocorrelation of a representative joint trajectory.}
+    \label{fig:wave_detrend}
+\end{figure}
 
-\textbf{Polynomial detrend.} For each joint--axis trajectory, a low-frequency drift term is first fit by a polynomial and subtracted from the raw signal. This removes slow drifts introduced by gradual changes in hand position or camera framing. Conceptually,
-\begin{equation}
-    \text{Wave} + \text{Trend} \xrightarrow{\text{polynomial detrend}} \text{Detrend Result}.
-\end{equation}
+Let $r(\tau)$ denote the autocorrelation of the detrended signal. The \emph{frequency} descriptor is the lag index of the first positive-lag peak of $r(\tau)$, corresponding to the dominant rotation period. The \emph{clarity} descriptor is the normalised peak height $r(\tau^{*})/r(0)$, where $\tau^{*}$ is the peak lag; values near one indicate high periodicity while low values reflect irregular rhythm. Fig.~\ref{fig:autocorr} shows a representative autocorrelation with the peak lag annotated.
 
-\textbf{Autocorrelation.} Let $r(\tau)$ denote the autocorrelation of the detrended signal. Two scalar descriptors are computed:
-\begin{itemize}
-    \item \textbf{Frequency.} The frame index of the first positive-lag peak of $r(\tau)$, which corresponds to the dominant period of rotation.
-    \item \textbf{Clarity.} The height of the first peak divided by the value of $r(\tau)$ at lag zero. A clarity value close to one indicates a highly periodic signal, whereas a low clarity value reflects irregular rhythm.
-\end{itemize}
-
-\section{Feature Extraction~(2/5): Cycle Amplitude and Rolling Peak-to-Peak}
+\subsection{Amplitude Representations}
 \label{sec:fe2}
 
-\subsection*{Observation}
+PD patients typically exhibit progressive amplitude reduction and cycle-to-cycle fluctuation within a single recording trial. Four complementary representations are computed from the detrended trajectory to capture different aspects of this phenomenon, as illustrated in Fig.~\ref{fig:amplitude_detection}.
 
-PD patients typically show a gradual reduction of movement amplitude over the course of a single recording, and instantaneous amplitudes may fluctuate from cycle to cycle. The amplitude features described in Sections~\ref{sec:fe2}--\ref{sec:fe3} are designed to capture these patterns through four complementary mathematical constructions.
+\emph{Cycle-by-cycle amplitude} identifies all local maxima and minima in the detrended trajectory, pairs adjacent peaks and valleys, and records the absolute difference of each pair as the instantaneous one-cycle amplitude. This representation gives the most direct measure of per-cycle displacement but is sensitive to isolated noise spikes.
 
-\subsection*{Method}
+\emph{Rolling peak-to-peak} avoids explicit peak detection by sliding a fixed-length window along the trajectory and recording, at each position, the local maximum minus the local minimum. This coarser amplitude estimate is more robust to noise than the cycle-by-cycle approach.
 
-\textbf{Cycle by cycle.} Iterating over every frame of the detrended trajectory, the algorithm flags each frame as a local maximum or minimum. Adjacent peaks and valleys are then paired, and the absolute amplitude of each rotation cycle is recorded, producing a derived time series whose value at each pair location is the instantaneous one-cycle amplitude.
+\emph{Rolling RMS} computes the root-mean-square of the detrended signal within a sliding window at each frame. The squaring operation distributes any single outlier's influence across the window, making rolling RMS the most noise-robust of the four representations.
 
-\textbf{Rolling peak-to-peak.} A sliding window traverses the trajectory and, at each window position, records the difference between the local maximum and the local minimum within the window. The resulting time series captures the local range of motion without requiring exact peak/valley detection.
+\emph{Hilbert envelope} derives instantaneous amplitude from the analytic signal. The Hilbert transform supplies the $90^{\circ}$-shifted quadrature component of the detrended waveform; the pointwise magnitude of the resulting complex analytic signal yields the instantaneous envelope. This representation tracks amplitude modulation at per-frame resolution, making it the most sensitive to rapid amplitude changes and complementary to the smoothed rolling RMS.
 
-\section{Feature Extraction~(3/5): Rolling RMS and Hilbert Envelope}
-\label{sec:fe3}
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[b]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/cycle_by_cycle}
+        \caption{Cycle-by-cycle amplitude.}
+        \label{fig:cycle}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/rolling_peak_to_peak}
+        \caption{Rolling peak-to-peak amplitude.}
+        \label{fig:rolling_p2p}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/rolling_rms}
+        \caption{Rolling RMS.}
+        \label{fig:rolling_rms}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[b]{0.23\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{figures/hilbert_envelope}
+        \caption{Hilbert envelope.}
+        \label{fig:hilbert}
+    \end{subfigure}
+    \caption{Four amplitude representations applied to a detrended joint trajectory.}
+    \label{fig:amplitude_detection}
+\end{figure}
 
-\textbf{Rolling RMS.} A sliding window computes the root-mean-square value of the (zero-mean) detrended signal within the window, providing a smoothed estimate of local movement energy. Among the four amplitude representations, this is the most robust to short-lived noise spikes.
-
-\textbf{Hilbert envelope.} The instantaneous amplitude envelope is obtained from the analytic signal. The raw waveform is treated as the cosine component of an unknown amplitude--phase representation; the Hilbert transform produces the corresponding $90^{\circ}$-shifted (sine) component; and the magnitude of the resulting complex analytic signal yields the envelope. The envelope thus represents the instantaneous amplitude of the original oscillation, sharing the same phase progression but stripped of its oscillatory content.
-
-\section{Feature Extraction~(4/5): Comparison of the Four Amplitude Representations}
-\label{sec:fe4}
-
-For each amplitude representation, three summary statistics are recorded: \emph{mean}, \emph{median}, and \emph{standard deviation}. Together, the four amplitude families therefore contribute $4 \times 3 = 12$ descriptors per joint axis.
-
-The four representations are designed to be complementary. Table~\ref{tab:amplitude_comparison} summarizes the qualitative trade-offs that motivate their joint inclusion.
+Three summary statistics---mean, median, and standard deviation---are computed for each representation, contributing $4 \times 3 = 12$ descriptors per trajectory. Table~\ref{tab:amplitude_comparison} summarises the qualitative trade-offs motivating their joint inclusion.
 
 \begin{table}[H]
     \centering
@@ -83,49 +112,36 @@ The four representations are designed to be complementary. Table~\ref{tab:amplit
     \small
     \setlength{\tabcolsep}{4pt}
     \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.22\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-        \hline
-        Property & Cycle by cycle & Rolling peak-to-peak & Rolling RMS & Hilbert envelope \\
-        \hline
-        Physical meaning   & Per-cycle displacement & Local range of motion & Local movement energy & Instantaneous envelope \\
-        Noise sensitivity  & Highest                & High                  & Low                   & High \\
-        Smoothness         & Low                    & Medium                & Highest               & High \\
-        Movement aspect    & Single-cycle behaviour & Local activity        & Overall decay trend   & Overall decay trend \\
-        \hline
+        \toprule
+        Property & Cycle-by-cycle & Rolling P2P & Rolling RMS & Hilbert \\
+        \midrule
+        Physical meaning   & Per-cycle displacement & Local range of motion & Local energy & Instantaneous envelope \\
+        Noise sensitivity  & Highest                & High                  & Low          & High \\
+        Smoothness         & Low                    & Medium                & Highest      & High \\
+        Movement aspect    & Single-cycle           & Local activity        & Decay trend  & Decay trend \\
+        \bottomrule
     \end{tabularx}
 \end{table}
 
-\section{Feature Extraction~(5/5): Final Feature-Vector Dimensionality}
-\label{sec:fe5}
+\subsection{Feature-Vector Dimensionality}
+\label{sec:fe3}
 
-Feature extraction is applied independently to every combination of hand, joint, and spatial axis. Per subject, the resulting feature vector therefore has the following dimensionality:
-\begin{enumerate}
-    \item Two hands, each with 21 joints and 3 spatial axes, yielding $2 \times 21 \times 3 = 126$ trajectories.
-    \item Per trajectory, two autocorrelation features (frequency and clarity) and twelve amplitude features.
-    \item Total dimensionality:
-    \begin{equation}
-        2 \times 21 \times 3 \times (2 + 4 \times 3) = 1764.
-        \label{eq:feature_dim}
-    \end{equation}
-\end{enumerate}
+Feature extraction is applied to all 126 trajectories. Each trajectory yields 2 autocorrelation features and 12 amplitude features, giving a total dimensionality of
+\begin{equation}
+    2 \times 21 \times 3 \times (2 + 4 \times 3) = 1764.
+    \label{eq:feature_dim}
+\end{equation}
 
 \section{Feature Selection}
 \label{sec:fs}
 
-\subsection*{Motivation}
+The feature dimensionality of 1,764 greatly exceeds the number of available samples in either clinical cohort, so feature selection is applied to mitigate overfitting and improve interpretability. Three methods are evaluated.
 
-The feature dimensionality of $1{,}764$ greatly exceeds the number of available samples in either clinical cohort. Training a classifier directly on the full feature vector therefore tends to overfit, and the resulting model is hard to interpret. To mitigate this, three feature-selection methods are evaluated.
+\emph{ANOVA F-value selection} ranks features by between-class to within-class variance ratio and retains those with the highest F-values. The method is computationally efficient but treats each feature independently and cannot capture inter-feature correlations.
 
-\subsection*{Methods}
+\emph{L1-regularised logistic regression} imposes an L1 penalty that shrinks uninformative feature coefficients to zero. Features with the largest absolute coefficients after regularisation are retained, implicitly accounting for linear feature interactions.
 
-\textbf{ANOVA F-value.} For each feature, the ratio between the between-class variance (PD vs healthy) and the within-class variance is computed. Features with the largest F-values are retained.
-
-\textbf{L1-regularized Logistic Regression.} An L1 penalty is added to the Logistic Regression loss, which shrinks the coefficients of unimportant features all the way to zero. Features whose absolute coefficient is non-zero (or, equivalently, whose absolute coefficient is among the largest) are retained.
-
-\textbf{XGBoost feature importance.} An XGBoost model is fit on the training fold and the gain-based importance of each feature, averaged over all decision-tree split points, is used as the selection criterion.
-
-\subsection*{Qualitative Comparison}
-
-The three methods differ in how they account for feature interactions and in how interpretable the resulting selection is. Table~\ref{tab:fs_methods_comparison} summarizes this contrast.
+\emph{XGBoost gain-based importance} trains an XGBoost model and ranks features by average gain across all tree splits, reflecting non-linear and combinatorial relationships. The resulting ranking is less directly interpretable than a linear coefficient. Table~\ref{tab:fs_methods_comparison} summarises the three methods.
 
 \begin{table}[H]
     \centering
@@ -134,35 +150,67 @@ The three methods differ in how they account for feature interactions and in how
     \small
     \setlength{\tabcolsep}{6pt}
     \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.32\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-        \hline
-        Method & ANOVA F-value & L1-Logistic Regression & XGBoost \\
-        \hline
-        Feature-interaction modelling & None              & Linear relationships    & Decision-tree combinations \\
-        Interpretability              & Direct statistical significance & Clear linear weights    & Complex tree-based logic \\
-        \hline
+        \toprule
+        Property & ANOVA F-value & L1-Logistic Regression & XGBoost \\
+        \midrule
+        Feature interactions & None              & Linear                 & Non-linear (tree-based) \\
+        Interpretability     & Statistical ratio & Linear coefficients    & Tree-based gain \\
+        \bottomrule
     \end{tabularx}
 \end{table}
 
-\section{Joint-Correlation Information: Pairwise Correlation and AGCN}
+\section{Joint-Correlation Information}
 \label{sec:joint_corr}
 
-\subsection*{Observation}
+Some joint pairs are anatomically unconnected yet may exhibit tight motion coupling---or abnormal decoupling---under PD. Two approaches are evaluated to encode such inter-joint relationships.
 
-Some pairs of joints are not directly connected in the anatomical skeleton, but their motion may nevertheless be tightly coupled (or, conversely, abnormally decoupled) under PD. Encoding such inter-joint relationships explicitly can therefore reveal disease-related patterns that single-joint descriptors miss.
-
-\subsection*{Pairwise Correlation Features}
+\subsection{Pairwise Correlation Features}
 \label{sec:joint_corr_corr}
 
-A first, hand-crafted, way of encoding inter-joint relationships is to add the Pearson correlation between feature trajectories of pairs of joints as additional features. For each pair of joint axes $(i,j)$ with $i \neq j$, the correlation
-\begin{equation}
-    r_{ij} = \frac{\sum_{t} (s_i(t) - \bar s_i)(s_j(t) - \bar s_j)}
-                  {\sqrt{\sum_{t} (s_i(t) - \bar s_i)^{2}} \, \sqrt{\sum_{t} (s_j(t) - \bar s_j)^{2}}}
-\end{equation}
-is computed over the entire recording. Within-hand and between-hand correlations are both retained. This descriptor, however, only carries information about \emph{two} joints at a time.
+A per-patient adjacency matrix $\mathbf{A}^{(n)} \in \mathbb{R}^{42 \times 42}$ is constructed from the kinematic feature vectors, covering all 21 joints of the left hand and 21 joints of the right hand. The 1,764-dimensional feature vector is first partitioned into 42 equal-length blocks of length $d = 42$, one per joint. Let $\mathbf{x}_i \in \mathbb{R}^{d}$ denote the feature block of joint $i$; stacking these blocks yields a data matrix $\mathbf{X}^{(n)} \in \mathbb{R}^{42 \times d}$ for patient $n$.
 
-\subsection*{AGCN}
+\subsubsection{Pearson Correlation Between Joints}
+\label{sec:pcc}
+The coupling strength between joint $i$ and joint $j$ is quantified by the Pearson correlation coefficient between their $d$-dimensional feature vectors $\mathbf{x}_i^{(n)}$ and $\mathbf{x}_j^{(n)}$:
+\begin{equation}
+    C_{ij}^{(n)} =
+    \frac{\displaystyle\sum_{k=1}^{d}
+          \!\left(x_{ik}^{(n)}-\bar{x}_{i}^{(n)}\right)
+          \!\left(x_{jk}^{(n)}-\bar{x}_{j}^{(n)}\right)}
+         {\sqrt{\displaystyle\sum_{k=1}^{d}
+                \!\left(x_{ik}^{(n)}-\bar{x}_{i}^{(n)}\right)^{2}}
+          \;\sqrt{\displaystyle\sum_{k=1}^{d}
+                  \!\left(x_{jk}^{(n)}-\bar{x}_{j}^{(n)}\right)^{2}}},
+    \label{eq:corr}
+\end{equation}
+where $x_{ik}^{(n)}$ is the $k$-th feature of joint $i$ for patient $n$ and $\bar{x}_{i}^{(n)}$ is its mean over the $d$ features. $C_{ij}^{(n)} \in [-1, 1]$, with $+1$ indicating perfect co-movement and $-1$ indicating perfect anti-movement between the two joints. Because graph adjacency weights are required to be non-negative, the Pearson correlation is remapped to $[0, 1]$:
+\begin{equation}
+    A_{ij}^{(n)} = \frac{C_{ij}^{(n)} + 1}{2}, \qquad A_{ii}^{(n)} = 0.
+    \label{eq:adj}
+\end{equation}
+The resulting matrix $\mathbf{A}^{(n)}$ is symmetric with zero diagonal, encoding the functional coupling strength between every joint pair for patient $n$.
+
+\subsubsection{Ledoit--Wolf Shrinkage Covariance}
+\label{sec:lw}
+Estimating a $42 \times 42$ covariance matrix from only $d = 42$ observations per joint is ill-conditioned with the standard sample estimator $\mathbf{S}^{(n)}$: when the number of variables equals the number of observations, the sample covariance is rank-deficient and its entries are noisy. The Ledoit--Wolf shrinkage estimator~\cite{ledoit2004honey} addresses this by forming a convex combination of the sample covariance and a scaled identity:
+\begin{equation}
+    \hat{\boldsymbol{\Sigma}}^{(n)} = (1 - \alpha)\,\mathbf{S}^{(n)} + \alpha\,\mu\,\mathbf{I},
+    \label{eq:lw}
+\end{equation}
+where $\mu = \mathrm{tr}(\mathbf{S}^{(n)})/42$ and $\alpha$ is the analytically optimal shrinkage coefficient. The shrinkage pulls the estimate towards a scaled identity matrix, improving conditioning without requiring cross-validation. Equation~\eqref{eq:corr} is then evaluated using $\hat{\boldsymbol{\Sigma}}^{(n)}$ in place of the sample covariance: the numerator becomes $\hat{\Sigma}_{ij}^{(n)}$ and the denominator becomes $\sqrt{\hat{\Sigma}_{ii}^{(n)}\,\hat{\Sigma}_{jj}^{(n)}}$, which is algebraically equivalent to the standard Pearson formula but with a regularised covariance. The result retains the $[-1,1]$ interpretation of linear correlation while benefiting from the more stable estimate.
+
+\subsubsection{Spearman Correlation with PD Stage}
+\label{sec:spearman}
+To identify which joint pairs carry the most discriminative information, a Spearman rank correlation is computed between the adjacency entry $A_{ij}^{(n)}$ and the MDS-UPDRS severity score $y^{(n)}$ across all patients:
+\begin{equation}
+    \rho_{ij} = \mathrm{Spearman}\!\left(\{A_{ij}^{(n)}\}_{n=1}^{N},\;\{y^{(n)}\}_{n=1}^{N}\right).
+    \label{eq:spearman}
+\end{equation}
+Spearman's $\rho$ is preferred over Pearson's $r$ here because MDS-UPDRS is an ordinal scale and the relationship between coupling strength and severity need not be linear. The resulting $\rho_{ij}$ matrix is visualised as a heatmap; pairs with $p < 0.05$ (uncorrected) are highlighted.
+
+\subsection{Adaptive Graph Convolutional Network}
 \label{sec:joint_corr_agcn}
 
-A second, learned, way of encoding inter-joint relationships is to use a graph convolutional network. The AGCN reviewed in Section~\ref{sec:rw_agcn} trains an adaptive adjacency that captures motion-based joint relationships across \emph{all} joints in both hands jointly. Compared with the pairwise correlation descriptors above, the AGCN can in principle express higher-order, jointly-defined patterns of inter-joint coupling.
+An AGCN (reviewed in Section~\ref{sec:rw_agcn}) constructs a learnable adjacency matrix from motion data, enabling the network to capture joint relationships across all joints in both hands simultaneously. Unlike the pairwise correlation descriptor, AGCN can express higher-order, jointly-defined inter-joint patterns.
 
-The two approaches are therefore presented as a deliberate contrast: pairwise correlation provides a simple hand-crafted baseline that only carries two-joint interactions, while AGCN learns a global, data-driven, multi-joint relational structure. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.
+These two approaches form a deliberate contrast: pairwise correlation provides an interpretable baseline restricted to bilateral joint interactions, while AGCN learns a global, data-driven relational structure. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.

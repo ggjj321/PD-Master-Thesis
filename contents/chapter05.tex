@@ -438,53 +438,70 @@ Adding the joint-wise pairwise correlation features does \emph{not} produce a co
 
 \subsection{Configuration}
 
-Experiment~5 replaces the hand-crafted feature pipeline by a learned graph-based feature extractor. The Adaptive Graph Convolutional Network described in Section~\ref{sec:joint_corr_agcn} is applied to the bilateral skeleton representation. Two block designs are compared, both following the formulation in Chapter~\ref{chap:methods}:
-\begin{itemize}
-    \item \textbf{Separate block.} Each graph block independently learns a perturbation matrix added to the anatomical adjacency.
-    \item \textbf{Same block.} The adaptive adjacency is derived from the layer's transformation weights via the Mahalanobis distance and a Gaussian kernel, and shared across blocks.
-\end{itemize}
-After graph propagation, the per-node embeddings are average-pooled to form a graph-level representation, which is then classified by Logistic Regression, Random Forest, or XGBoost.
+Experiment~5 replaces the hand-crafted feature pipeline by a learned graph-based feature extractor. The Adaptive Graph Convolutional Network described in Section~\ref{sec:joint_corr_agcn} is applied to the bilateral skeleton representation: the adaptive graph is derived from the layer-wise feature transformation through a Mahalanobis distance and Gaussian kernel, allowing the model to learn sample-dependent joint relations from the input representation. After graph propagation, the per-node embeddings are average-pooled into a graph-level representation and passed to a linear classification head. Henceforth this configuration is referred to simply as \emph{AGCN}.
+
+To directly mirror the method comparison shown in the oral defense, the AGCN result is reported alongside the strongest baselines from Experiments~2--4: the bilateral XGB Importance baseline (Exp.~2), the left-hand XGB Importance baseline (Exp.~3), and the three correlation-augmented configurations (Exp.~4). All baselines use XGBoost as the downstream classifier.
 
 \subsection{Results}
 
-Table~\ref{tab:gcn_block_model_comparison} reports the within-cohort LOOCV performance of the six configurations on the 2020 and 2025 cohorts. Figure~\ref{fig:gcn_roc_comparison} shows the corresponding ROC curves. The cross-cohort transfer results are reported in Table~\ref{tab:gcn_cross_dataset}.
+Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method comparison; Table~\ref{tab:gcn_methods_2025} reports the 2025 within-cohort method comparison; and Table~\ref{tab:gcn_cross_dataset} reports the 2020-to-2025 cross-cohort transfer comparison. Figure~\ref{fig:gcn_roc_comparison} shows the corresponding ROC curves for AGCN.
 
 \begin{table}[H]
     \centering
-    \caption{AGCN under LOOCV (block design $\times$ downstream classifier)}
-    \label{tab:gcn_block_model_comparison}
+    \caption{Method comparison on the 2020 cohort under LOOCV (AGCN vs.\ baselines from Exp.~2--4)}
+    \label{tab:gcn_methods_2020}
     \small
     \setlength{\tabcolsep}{4pt}
     \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
         \hline
-        Configuration & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
+        Method & AUROC & Accuracy & F1-score \\
         \hline
-        Separate block + Logistic Regression & 0.98 / 0.97 & 0.90 / 0.92 & 0.84 / 0.81 \\
-        Separate block + XGBoost             & 0.87 / 0.78 & 0.83 / 0.82 & 0.69 / 0.59 \\
-        Separate block + Random Forest       & 0.92 / 0.84 & 0.86 / 0.84 & 0.75 / 0.60 \\
-        Same block + Logistic Regression     & 0.98 / 0.97 & 0.89 / 0.92 & 0.80 / 0.82 \\
-        Same block + XGBoost                 & 0.89 / 0.76 & 0.85 / 0.84 & 0.73 / 0.60 \\
-        Same block + Random Forest           & 0.92 / 0.83 & 0.85 / 0.86 & 0.71 / 0.62 \\
+        Left XGB Importance                  & 0.66 & 0.67 & 0.48 \\
+        XGB Importance                       & 0.74 & 0.78 & 0.60 \\
+        Correlation + ANOVA                  & 0.74 & 0.77 & 0.63 \\
+        Correlation + Logistic L1            & 0.73 & 0.81 & 0.63 \\
+        Correlation + XGB Importance         & 0.74 & 0.78 & 0.62 \\
+        AGCN                                 & 0.98 & 0.90 & 0.84 \\
         \hline
     \end{tabularx}
 \end{table}
 
 \begin{table}[H]
     \centering
-    \caption{Cross-cohort evaluation of AGCN configurations (train on 2020, test on 2025)}
+    \caption{Method comparison on the 2025 cohort under LOOCV (AGCN vs.\ baselines from Exp.~2--4)}
+    \label{tab:gcn_methods_2025}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
+        \hline
+        Method & AUROC & Accuracy & F1-score \\
+        \hline
+        Left-hand XGB Importance             & 0.75 & 0.80 & 0.63 \\
+        XGB Importance                       & 0.69 & 0.72 & 0.54 \\
+        Correlation + ANOVA                  & 0.61 & 0.63 & 0.44 \\
+        Correlation + Logistic L1            & 0.55 & 0.60 & 0.42 \\
+        Correlation + XGB Importance         & 0.70 & 0.65 & 0.50 \\
+        AGCN                                 & 0.98 & 0.92 & 0.84 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \caption{Method comparison under cross-cohort evaluation (train on 2020, test on 2025)}
     \label{tab:gcn_cross_dataset}
     \small
     \setlength{\tabcolsep}{4pt}
     \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}XYYY}
         \hline
-        Configuration & AUROC & Accuracy & F1-score \\
+        Method & AUROC & Accuracy & F1-score \\
         \hline
-        Separate block + Logistic Regression & 0.53 & 0.58 & 0.40 \\
-        Separate block + XGBoost             & 0.58 & 0.64 & 0.39 \\
-        Separate block + Random Forest       & 0.58 & 0.58 & 0.41 \\
-        Same block + Logistic Regression     & 0.59 & 0.57 & 0.45 \\
-        Same block + XGBoost                 & 0.62 & 0.64 & 0.44 \\
-        Same block + Random Forest           & 0.61 & 0.59 & 0.43 \\
+        Left XGB Importance                  & 0.66 & 0.67 & 0.48 \\
+        XGB Importance                       & 0.65 & 0.79 & 0.47 \\
+        Correlation + ANOVA                  & 0.68 & 0.75 & 0.49 \\
+        Correlation + Logistic L1            & 0.66 & 0.61 & 0.47 \\
+        Correlation + XGB Importance         & 0.68 & 0.69 & 0.50 \\
+        AGCN                                 & 0.59 & 0.39 & 0.39 \\
         \hline
     \end{tabularx}
 \end{table}
@@ -492,26 +509,51 @@ Table~\ref{tab:gcn_block_model_comparison} reports the within-cohort LOOCV perfo
 \begin{figure}[H]
     \centering
     \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/2020_agcn.png}
+        \includegraphics[width=\textwidth]{figures/2020_agcn_loss.png}
         \caption{2020 (LOOCV)}
-        \label{fig:gcn_roc_2020}
+        \label{fig:gcn_loss_2020}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/2025_agcn.png}
+        \includegraphics[width=\textwidth]{figures/2025_agcn_loss.png}
         \caption{2025 (LOOCV)}
-        \label{fig:gcn_roc_2025}
+        \label{fig:gcn_loss_2025}
     \end{subfigure}
     \hfill
     \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/cross_agcn.png}
+        \includegraphics[width=\textwidth]{figures/cross_agcn_loss.png}
         \caption{Cross-cohort}
-        \label{fig:gcn_roc_cross}
+        \label{fig:gcn_loss_cross}
     \end{subfigure}
-    \caption{ROC curves of AGCN configurations under LOOCV and cross-cohort transfer.}
-    \label{fig:gcn_roc_comparison}
+    \caption{Training and validation loss curves of AGCN.}
+    \label{fig:gcn_loss_comparison}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/2020_agcn_rmse.png}
+        \caption{2020 (LOOCV)}
+        \label{fig:gcn_rmse_2020}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/2025_agcn_rmse.png}
+        \caption{2025 (LOOCV)}
+        \label{fig:gcn_rmse_2025}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}[t]{0.32\textwidth}
+        \includegraphics[width=\textwidth]{figures/cross_agcn_rmse.png}
+        \caption{Cross-cohort}
+        \label{fig:gcn_rmse_cross}
+    \end{subfigure}
+    \caption{RMSE curves of AGCN across training epochs.}
+    \label{fig:gcn_rmse_comparison}
 \end{figure}
 
 \subsection{Observation}
 
-Within cohort, AGCN dramatically outperforms every hand-crafted configuration of Experiments~1--4, with the Logistic Regression head reaching AUROCs of $0.98$ (2020) and $0.97$ (2025), and accuracies of $0.89$--$0.92$. In the cross-cohort transfer setting, however, AUROC collapses to $0.53$--$0.62$, comparable to or worse than the best hand-crafted feature configurations (best result: Same block + XGBoost, AUROC $0.62$). Because the adaptive graph topology is itself learned from the training distribution, the discovered joint-wise relations do not transfer well when the recording protocol or patient population shifts, which exacerbates the domain-shift problem typical of small clinical datasets.
+Within cohort, AGCN dominates every hand-crafted configuration from Experiments~2--4, reaching AUROCs of $0.98$ on both the 2020 and 2025 cohorts with accuracies of $0.90$--$0.92$ and F1-scores of $0.84$. This indicates that adaptive graph learning captures discriminative joint-wise motion patterns that are not fully represented by the autocorrelation, amplitude, or pairwise-correlation feature sets in earlier experiments.
+
+In the cross-cohort transfer setting, however, AGCN drops to an AUROC of $0.59$, an accuracy of $0.39$, and an F1-score of $0.39$---falling behind every hand-crafted configuration in Table~\ref{tab:gcn_cross_dataset}. This sharp reversal suggests that the learned graph topology is highly dependent on the training distribution. When the recording protocol or patient population shifts from the 2020 cohort to the 2025 cohort, the graph structure learned on the source cohort does not transfer reliably, exacerbating the domain-shift problem typical of small clinical datasets.

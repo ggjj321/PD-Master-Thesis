@@ -1,6 +1,12 @@
 % !TeX root = ../main.tex
 
-\chapter{Dataset and Experimental Setup}
+% Tighten vertical spacing for this chapter only
+\titlespacing*{\section}{0pt}{2ex plus .5ex minus .2ex}{0.3ex}
+\titlespacing*{\subsection}{0pt}{1.5ex plus .3ex minus .2ex}{0.2ex}
+\titlespacing*{\subsubsection}{0pt}{1.2ex plus .3ex minus .2ex}{0.2ex}
+\setlength{\parskip}{4pt}
+
+\chapter[Dataset and Experiment Setting]{Dataset and \\ Experiment Setting}
 \label{chap:setup}
 
 \section{NTUH Parkinson's Disease Outpatient Clinic Dataset}
@@ -56,52 +62,78 @@ Throughout this thesis, stage~0 is treated as the \emph{healthy} class and stage
 \section{Experimental Roadmap}
 \label{sec:roadmap}
 
-Five experiments are conducted in this thesis, each motivated by a specific question about which features and which model family give the best PD-versus-healthy discrimination on the NTUH cohorts. Table~\ref{tab:roadmap} summarizes the roadmap.
+Five experiments are conducted in this thesis, each motivated by a specific research question concerning feature representation, feature dimensionality, lateralization effects, inter-joint correlation, and graph-based learning for PD-versus-healthy binary classification on the NTUH cohorts.
 
-\begin{table}[H]
-    \centering
-    \caption{Experimental roadmap}
-    \label{tab:roadmap}
-    \small
-    \setlength{\tabcolsep}{6pt}
-    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.10\linewidth} >{\raggedright\arraybackslash}X}
-        \hline
-        Exp. & Question and configuration \\
-        \hline
-        1 & Binary classification using thumb-tip features versus all bilateral joint features, with Logistic Regression, Random Forest, and XGBoost as classifiers. \\
-        2 & On bilateral joint features, combine each of three feature-selection methods (ANOVA, L1-regularized Logistic Regression, XGBoost Importance) with XGBoost for binary classification. \\
-        3 & Repeat Exp.~2 but for left-hand-only and right-hand-only feature subsets, in order to expose any inter-hand asymmetry. \\
-        4 & Augment bilateral features with joint-wise pairwise correlation features and apply the three feature selection methods, again combined with XGBoost. \\
-        5 & Replace the hand-crafted pipeline with an adaptive graph convolutional network (AGCN) that learns joint-wise relationships directly. \\
-        \hline
-    \end{tabularx}
-\end{table}
+\subsection{Experiment 1: Baseline Binary Classification with Thumb-Tip and Bilateral Hand-Joint Features}
+\label{sec:roadmap_exp1}
+
+The first experiment establishes a baseline by performing binary classification using two feature sets: thumb-tip features and full bilateral hand-joint features. Three classifiers are evaluated---Logistic Regression, Random Forest, and XGBoost---to assess the discriminative capacity of these features without any feature selection.
+
+\subsection{Experiment 2: Feature Selection with XGBoost on Bilateral Hand-Joint Features}
+\label{sec:roadmap_exp2}
+
+The second experiment addresses the high feature dimensionality arising from bilateral joint representations. Feature selection is applied to the full bilateral hand-joint feature set using three methods---ANOVA F-test, L1-regularized Logistic Regression, and XGBoost feature importance---each followed by XGBoost binary classification.
+
+\subsection{Experiment 3: Hand-Specific Analysis to Investigate Motor Reserve}
+\label{sec:roadmap_exp3}
+
+The third experiment repeats the pipeline of Experiment~2 separately on left-hand-only and right-hand-only feature subsets. By comparing the classification performance of each hand independently, this experiment aims to expose asymmetric motor decline and investigate the influence of motor reserve on PD discrimination.
+
+\subsection{Experiment 4: Augmenting Bilateral Features with Inter-Joint Correlation}
+\label{sec:roadmap_exp4}
+
+The fourth experiment extends the bilateral feature set by appending pairwise Pearson correlation coefficients computed between joint-wise time series as additional features. The same three feature-selection methods from Experiment~2 are then applied, followed by XGBoost classification, to assess whether statistically derived inter-joint motion correlation improves discriminative performance.
+
+\subsection{Experiment 5: Adaptive Graph Convolutional Network}
+\label{sec:roadmap_exp5}
+
+The fifth experiment replaces the hand-crafted feature pipeline with an Adaptive Graph Convolutional Network (AGCN) that operates directly on the joint-coordinate sequences. Rather than relying on predefined correlation statistics, the AGCN learns inter-joint motion relationships in an end-to-end manner through a trainable adjacency matrix, allowing the model itself to discover which joint interactions are most informative for PD classification.
 
 \section{Experimental Setting}
 \label{sec:exp_setting}
 
-\subsection*{Within-Cohort Validation: LOOCV}
+\subsection{Within-Cohort Validation}
+\label{sec:loocv}
 
-Within a single cohort, validation is performed with Leave-One-Out Cross-Validation (LOOCV). For Experiments~2 and~3, feature selection is re-run on the training fold of \emph{every} LOOCV iteration, so that no information from the held-out subject can leak into the selected feature subset. The out-of-fold prediction probability of each subject is stored, and the pooled probabilities are then used to draw a single ROC curve per configuration. After the LOOCV loop is complete, the Youden index
+Within a single cohort, a Leave-One-Out Cross-Validation (LOOCV) protocol is employed to maximize the use of the limited clinical data. In each iteration, one subject is held out as the test sample and the remaining subjects constitute the training set. For Experiments~2 and~3, feature selection is re-executed on the training fold of every LOOCV iteration so that no information from the held-out subject can influence the selected feature subset. The out-of-fold predicted probability of each subject is stored, and the pooled probabilities are used to construct a single ROC curve per experimental configuration.
+
+\subsection{Cross-Cohort Evaluation}
+\label{sec:cross_cohort}
+
+In addition to within-cohort LOOCV, a stricter cross-cohort transfer protocol is applied to assess generalization across recording conditions. The model is trained on the complete 2020 off-medication cohort and evaluated on the complete 2025 off-medication cohort. Feature selection is performed exclusively on the training cohort, and the resulting feature indices are applied without modification to the unseen test cohort. Accuracy, F1-score, and AUROC are reported on the test cohort.
+
+\subsection{Evaluation Metrics}
+\label{sec:metrics}
+
+Model performance is evaluated using three complementary metrics: \emph{AUROC}, \emph{accuracy}, and \emph{F1-score}. AUROC is threshold-independent and serves as the primary metric for cross-model comparison. Accuracy and F1-score are threshold-dependent and are computed after determining an optimal decision boundary via the Youden index.
+
+\subsubsection{Youden Index}
+
+The Youden index~\cite{youden1950index} is defined as the maximum vertical distance from the ROC curve to the diagonal chance line:
 \begin{equation}
-    J = \mathrm{TPR}(\tau) - \mathrm{FPR}(\tau)
+    J(\tau) = \mathrm{TPR}(\tau) - \mathrm{FPR}(\tau),
+    \label{eq:youden}
 \end{equation}
-is computed over all candidate thresholds, and the threshold $\tau^{*}$ that maximizes $J$ is used to binarize the probabilities into class predictions. Accuracy and F1-score are then computed from the resulting confusion matrix.
+where $\mathrm{TPR}(\tau)$ and $\mathrm{FPR}(\tau)$ denote the sensitivity and one-minus-specificity at threshold $\tau$, respectively. Geometrically, the diagonal represents a random classifier (AUROC $= 0.5$), and $J(\tau)$ measures how far the operating point departs from this baseline. The optimal threshold is
+\begin{equation}
+    \tau^{*} = \arg\max_{\tau}\; J(\tau),
+    \label{eq:youden_opt}
+\end{equation}
+which simultaneously maximises sensitivity and specificity without imposing an \emph{a priori} cost asymmetry between false positives and false negatives.
 
-\subsection*{Cross-Cohort Evaluation}
+This criterion is particularly suitable for clinical screening tasks. In medical datasets, class distributions are typically imbalanced and the cost of missing a true case (false negative) may differ substantially from the cost of a false alarm. The 0.5 default threshold---optimal only when classes are balanced and misclassification costs are equal---is therefore inappropriate. The Youden index selects the threshold that provides the best balance between sensitivity and specificity given the observed ROC curve, without requiring explicit specification of misclassification costs. The resulting $\tau^{*}$ is used to binarize predicted probabilities into class labels, from which accuracy and F1-score are computed.
 
-In addition to the within-cohort LOOCV protocol, every experiment is also evaluated under a stricter cross-cohort transfer protocol: the model is trained on the entire 2020 off-medication cohort and tested on the entire 2025 off-medication cohort. Feature selection is performed exclusively on the training cohort, and the selected feature indices are then transferred to the unseen test cohort. AUROC, accuracy, and F1-score are reported on the test cohort.
+\subsection{Training-Termination Criteria}
+\label{sec:termination}
 
-\subsection*{Training-Termination Criteria}
-
-Different model families use different criteria to decide when training has converged.
+Each model family adopts a stopping criterion appropriate to its optimization procedure.
 
 \begin{itemize}
-    \item \textbf{Logistic Regression} stops when the change in the training loss between consecutive iterations falls below a fixed threshold.
-    \item \textbf{Random Forest} and \textbf{XGBoost} are configured to grow up to a fixed number of trees / nodes (see the hyperparameter table in Section~\ref{sec:exp_setting_hparams}).
+    \item \textbf{Logistic Regression} converges when the change in training loss between consecutive iterations falls below a predefined tolerance.
+    \item \textbf{Random Forest} and \textbf{XGBoost} are trained for a fixed number of trees and nodes, respectively, as specified in Section~\ref{sec:exp_setting_hparams}.
 \end{itemize}
 
-\subsection*{Hyperparameters}
+\subsection{Hyperparameters}
 \label{sec:exp_setting_hparams}
 
 The hyperparameters of the XGBoost and AGCN models used throughout the experiments are summarized in Tables~\ref{tab:xgboost_params} and~\ref{tab:agcn_params}.
@@ -148,3 +180,9 @@ Class imbalance across LOOCV folds is mitigated by rescaling the XGBoost positiv
         \hline
     \end{tabularx}
 \end{table}
+
+% Restore default spacing for subsequent chapters
+\titlespacing*{\section}{0pt}{3.5ex plus 1ex minus .2ex}{2.3ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\subsubsection}{0pt}{3.25ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\setlength{\parskip}{10pt}
