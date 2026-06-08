@@ -70,8 +70,12 @@
   Autocorrelation function of the detrended joint-axis trajectory at lag $\tau$
 }
 
-\item[$\tau^{*}$]{
-  (i) Lag index of the first positive-lag peak of $r(\tau)$, used as the \emph{frequency} descriptor; (ii) optimal classification threshold selected by the Youden index
+\item[$\tau_{\mathrm{peak}}$]{
+  Lag, measured in frames, of the first positive-lag peak of $r(\tau)$
+}
+
+\item[$f_{\mathrm{rot}}$]{
+  Rotation-frequency descriptor computed as $f_{\mathrm{rot}} = f_s / \tau_{\mathrm{peak}}$
 }
 
 \item[$C_{ij}^{(n)}$]{
@@ -118,8 +122,12 @@
   Learnable projection matrix defining the Mahalanobis metric in AGCN, $W_d \in \mathbb{R}^{d \times d}$
 }
 
-\item[$J(\tau)$]{
-  Youden index at threshold $\tau$, $J(\tau) = \mathrm{TPR}(\tau) - \mathrm{FPR}(\tau)$
+\item[$J(\theta)$]{
+  Youden index at classification threshold $\theta$, $J(\theta) = \mathrm{TPR}(\theta) - \mathrm{FPR}(\theta)$
+}
+
+\item[$\theta^{*}$]{
+  Youden-selected validation threshold
 }
 
 \end{denotation}

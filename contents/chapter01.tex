@@ -3,42 +3,20 @@
 \chapter{Introduction}
 \label{chap:intro}
 
-\section{Task}
+\section{Motivation and Clinical Background}
 
-This thesis investigates the binary classification of Parkinson's Disease (PD) risk from hand-rotation videos recorded with everyday smartphones or tablets. The clinical task we focus on is the pronation-supination test, in which an elderly subject repeatedly rotates a hand between palm-up and palm-down orientations in front of the front-facing camera. Given such a short video clip per hand, the system is required to output a single binary label: PD or healthy.
+Parkinson's Disease (PD) is a progressive neurodegenerative disorder whose clinical manifestation is dominated by motor symptoms, including bradykinesia, resting tremor, rigidity, and postural instability. In clinical practice, neurologists rate symptom severity on a five-level scale derived from the Movement Disorder Society--Unified Parkinson's Disease Rating Scale (MDS-UPDRS), where stage~0 corresponds to a healthy subject and stages~1 through~4 correspond to increasing severity of PD. In line with the convention adopted throughout this thesis, stage~0 subjects are treated as the \emph{Healthy} class and stages~1--4 are merged into the \emph{PD} class.
 
-\section{Method Overview}
+Among the many MDS-UPDRS motor items, this thesis focuses on the hand pronation-supination task, in which an elderly subject repeatedly rotates a hand between palm-up and palm-down orientations in front of an ordinary smartphone or tablet camera. Given such a short video clip per hand, the goal is to output a single binary label: PD or healthy. This formulation aligns with low-cost, at-home screening: no dedicated hardware or clinical staff is required at recording time, and the resulting system can in principle be deployed on consumer devices.
 
-The proposed analysis pipeline consists of four stages. First, the MediaPipe Hands framework extracts a sequence of 21 hand keypoints from each video frame, producing a 3D skeletal trajectory for each hand. Second, three families of kinematic descriptors are computed from these trajectories: movement frequency, rhythmic clarity (regularity), and amplitude. Third, multiple feature-selection strategies are applied to reduce the resulting high-dimensional feature vector. Finally, multiple machine-learning models are compared as the final binary classifier, including Logistic Regression, Random Forest, XGBoost, and an Adaptive Graph Convolutional Network (AGCN).
+\section{Proposed Approach and Contributions}
 
-\section{Challenges and Solutions}
+The proposed pipeline consists of four stages. MediaPipe Hands first extracts a temporal sequence of 21 three-dimensional hand keypoints from each video frame. Three families of kinematic descriptors---movement frequency, rhythmic clarity, and amplitude---are then computed from the resulting skeletal trajectories. Multiple feature-selection strategies are applied to mitigate the high feature dimensionality relative to the available sample size. Finally, several classifiers are compared, including Logistic Regression, Random Forest, XGBoost, and a feature-based Adaptive Graph Convolutional Network (AGCN-style) model that learns inter-joint relationships from the kinematic feature graph.
 
-Two principal challenges were identified during this study:
+Two principal challenges arise in this setting. First, class imbalance and heterogeneous symptom improvement after medication are addressed by stratifying the data by medication status and restricting principal analyses to off-medication recordings, removing levodopa confounding. Second, the feature dimensionality ($1{,}764$ dimensions) substantially exceeds the number of available samples, favouring overfitting; this is addressed by cross-comparing three in-fold feature-selection strategies (ANOVA F-value, L1-regularised Logistic Regression, and XGBoost gain-based importance).
 
-\begin{table}[H]
-    \centering
-    \caption{Principal challenges and the corresponding solutions adopted in this thesis}
-    \label{tab:challenges_solutions}
-    \small
-    \setlength{\tabcolsep}{8pt}
-    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.42\linewidth} >{\raggedright\arraybackslash}X}
-        \hline
-        Challenge & Solution \\
-        \hline
-        Class imbalance and heterogeneous symptom improvement after medication & Stratify the data by medication status and restrict the principal analyses to off-medication recordings, so that the underlying motor severity is not confounded by levodopa response \\
-        Feature dimensionality much larger than the number of samples, leading to overfitting & Apply and cross-compare multiple feature-selection strategies (ANOVA F-value, L1-regularized Logistic Regression, and XGBoost gain-based importance) within each cross-validation fold \\
-        \hline
-    \end{tabularx}
-\end{table}
-
-\section{Contribution}
-
-The principal contribution of this thesis is to demonstrate that a binary PD-versus-healthy classifier built on hand-rotation videos captured by ordinary mobile devices can achieve up to roughly 80\% accuracy under Leave-One-Out Cross-Validation (LOOCV) on a clinical cohort.
-
-\section{Clinical Background of Parkinson's Disease}
-
-Parkinson's Disease is a progressive neurodegenerative disorder of the brain whose clinical manifestation is dominated by motor symptoms, including bradykinesia, resting tremor, rigidity, and postural instability. In clinical practice, neurologists rate symptom severity on a five-level scale derived from the Movement Disorder Society--Unified Parkinson's Disease Rating Scale (MDS-UPDRS), where stage~0 corresponds to a healthy subject and stages~1 through~4 correspond to increasing severity of PD. In line with the convention adopted throughout this thesis, stage~0 subjects are treated as the \emph{Healthy} class and stages~1--4 are merged into the \emph{PD} class. Among the many MDS-UPDRS motor items, this work focuses exclusively on the hand pronation-supination task, and casts the analysis as a binary discrimination between stage~0 and stages~1--4.
+The principal contribution of this thesis is to demonstrate that a binary PD-versus-healthy classifier built on hand-rotation videos captured by ordinary mobile devices can achieve up to roughly 82\% accuracy under Leave-One-Out Cross-Validation (LOOCV) on a clinical cohort, and to systematically compare hand-crafted kinematic features, explicit joint-correlation augmentation, and a learned graph-based model in terms of both within-cohort and cross-cohort generalisation.
 
 \section{Thesis Organization}
 
-The remainder of this thesis is organized as follows. Chapter~\ref{chap:related} surveys related work on vision-based PD assessment, the MediaPipe hand-tracking framework, the motor reserve hypothesis, and adaptive graph convolutional networks. Chapter~\ref{chap:methods} describes the proposed pipeline, including skeleton extraction, the five-part feature-extraction module, feature selection, and the joint-correlation as well as AGCN designs. Chapter~\ref{chap:setup} presents the NTUH clinical dataset, the experimental roadmap, and the evaluation protocol. Chapter~\ref{chap:results} reports and analyses the results of five experiments. Chapter~\ref{chap:conclusion} concludes the thesis and outlines directions for future work.
+The remainder of this thesis is organized as follows. Chapter~\ref{chap:related} surveys related work on vision-based PD assessment, the MediaPipe hand-tracking framework, the motor reserve hypothesis, and adaptive graph convolutional networks. Chapter~\ref{chap:methods} describes the proposed pipeline, including skeleton extraction, the feature-extraction module, feature selection, and the joint-correlation and AGCN-style designs. Chapter~\ref{chap:setup} presents the NTUH clinical dataset, the experimental roadmap, and the evaluation protocol. Chapter~\ref{chap:results} reports and analyses the results of five experiments. Chapter~\ref{chap:conclusion} concludes the thesis and outlines directions for future work.

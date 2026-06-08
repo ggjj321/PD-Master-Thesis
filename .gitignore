@@ -272,3 +272,6 @@ TSWLatexianTemp*
 
 .DS_Store
 # End of https://www.gitignore.io/api/latexmain.pdf
+
+exp1_rerun_20260604/
+exp234_rerun_20260603/

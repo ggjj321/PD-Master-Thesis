@@ -13,14 +13,21 @@
     \label{fig:pipeline}
 \end{figure}
 
-The proposed system is a four-stage pipeline for automated PD assessment from hand-rotation video, as illustrated in Fig.~\ref{fig:pipeline}. A raw video is first processed by MediaPipe Hands to extract a temporal sequence of 21 three-dimensional keypoint coordinates per hand. Three families of kinematic descriptors---\emph{frequency}, \emph{clarity}, and \emph{amplitude}---are then computed from the resulting skeletal time series. The high-dimensional feature vector is subsequently reduced by one of three feature-selection strategies: ANOVA F-value ranking, L1-regularised logistic regression, or XGBoost gain-based importance. Finally, the selected features are fed into one of four classifiers---logistic regression, random forest, XGBoost, or an adaptive graph convolutional network (AGCN)---which outputs a binary PD-versus-healthy label.
+The proposed system is a four-stage pipeline for automated PD assessment from hand-rotation video, as illustrated in Fig.~\ref{fig:pipeline}. A raw video is first processed by MediaPipe Hands to extract a temporal sequence of 21 three-dimensional keypoint coordinates per hand. Three families of kinematic descriptors---\emph{frequency}, \emph{clarity}, and \emph{amplitude}---are then computed from the resulting skeletal time series. The high-dimensional feature vector is subsequently either reduced by one of three feature-selection strategies for the conventional classifiers, or organised as a joint-wise feature graph for the feature-based adaptive graph convolutional network (AGCN-style) model. The final classifier outputs a binary PD-versus-healthy label.
 
-The remainder of this chapter describes each stage in detail. Section~\ref{sec:fe} covers feature extraction, Section~\ref{sec:fs} describes the three feature-selection methods, and Section~\ref{sec:joint_corr} presents the joint-correlation module and the AGCN branch.
+The remainder of this chapter describes each stage in detail. Section~\ref{sec:fe} covers feature extraction, Section~\ref{sec:fs} describes the three feature-selection methods, and Section~\ref{sec:joint_corr} presents the joint-correlation module and the feature-based AGCN-style branch.
 
 \section{Feature Extraction}
 \label{sec:fe}
 
 Feature extraction is applied independently to every combination of hand, joint, and spatial axis. Both hands are processed, each containing 21 joints recorded along 3 spatial axes, yielding $2 \times 21 \times 3 = 126$ independent trajectories per subject. For each trajectory, frequency, clarity, and four amplitude representations are computed as described in the following subsections.
+
+\subsection{Skeleton Sequence Preprocessing}
+\label{sec:skeleton_preprocess}
+
+The skeleton extraction code processes each video frame sequentially with MediaPipe Hands and stores the resulting sequence in the original frame order. If a hand is detected in a frame, all 21 MediaPipe landmarks are saved as normalised $(x,y,z)$ coordinates. If MediaPipe fails to detect a hand in an intermediate frame, the frame is retained but represented by an all-zero $21 \times 3$ landmark array, preserving the temporal length of the original video. Videos with no valid hand detections are discarded. For compatibility with older skeleton files containing only two-dimensional coordinates, a zero-valued $z$ coordinate is appended before feature extraction.
+
+No explicit per-video frame-rate resampling is applied in the hand-crafted feature pipeline. The frequency descriptor is computed from the first positive autocorrelation peak using a nominal sampling rate of 60 frames per second; therefore, temporal alignment is performed in frame units rather than by interpolating all recordings onto a shared time grid. Variable recording lengths are handled by summary statistics over each available trajectory. The AGCN-style experiment uses the same summary-feature representation rather than the raw frame sequence: the 1,764-dimensional bilateral feature vector is reshaped into a 42-node graph, where each node corresponds to one MediaPipe hand joint and stores the descriptors associated with that joint.
 
 \subsection{Frequency and Clarity}
 \label{sec:fe1}
@@ -55,7 +62,7 @@ Before autocorrelation is computed, each trajectory is detrended to remove low-f
     \label{fig:wave_detrend}
 \end{figure}
 
-Let $r(\tau)$ denote the autocorrelation of the detrended signal. The \emph{frequency} descriptor is the lag index of the first positive-lag peak of $r(\tau)$, corresponding to the dominant rotation period. The \emph{clarity} descriptor is the normalised peak height $r(\tau^{*})/r(0)$, where $\tau^{*}$ is the peak lag; values near one indicate high periodicity while low values reflect irregular rhythm. Fig.~\ref{fig:autocorr} shows a representative autocorrelation with the peak lag annotated.
+Let $r(\tau)$ denote the autocorrelation of the detrended signal, and let $\tau_{\mathrm{peak}}$ be the lag, measured in frames, of the first positive-lag peak. The \emph{frequency} descriptor is computed as $f_{\mathrm{rot}} = f_s / \tau_{\mathrm{peak}}$, where $f_s=60$ frames per second is the nominal sampling rate used in the implementation; $\tau_{\mathrm{peak}}$ therefore corresponds to the dominant rotation period. The \emph{clarity} descriptor is the normalised peak height $r(\tau_{\mathrm{peak}})/r(0)$; values near one indicate high periodicity while low values reflect irregular rhythm. Fig.~\ref{fig:autocorr} shows a representative autocorrelation with the peak lag annotated.
 
 \subsection{Amplitude Representations}
 \label{sec:fe2}
@@ -69,6 +76,8 @@ PD patients typically exhibit progressive amplitude reduction and cycle-to-cycle
 \emph{Rolling RMS} computes the root-mean-square of the detrended signal within a sliding window at each frame. The squaring operation distributes any single outlier's influence across the window, making rolling RMS the most noise-robust of the four representations.
 
 \emph{Hilbert envelope} derives instantaneous amplitude from the analytic signal. The Hilbert transform supplies the $90^{\circ}$-shifted quadrature component of the detrended waveform; the pointwise magnitude of the resulting complex analytic signal yields the instantaneous envelope. This representation tracks amplitude modulation at per-frame resolution, making it the most sensitive to rapid amplitude changes and complementary to the smoothed rolling RMS.
+
+Before amplitude statistics are summarised, each hand trajectory is scale-normalised by the median Euclidean distance between the wrist landmark and the middle-finger MCP landmark within that recording. This subject-level normalisation reduces the effect of camera distance and hand size on displacement-based amplitude descriptors.
 
 \begin{figure}[H]
     \centering
@@ -123,10 +132,7 @@ Three summary statistics---mean, median, and standard deviation---are computed f
     \end{tabularx}
 \end{table}
 
-\subsection{Feature-Vector Dimensionality}
-\label{sec:fe3}
-
-Feature extraction is applied to all 126 trajectories. Each trajectory yields 2 autocorrelation features and 12 amplitude features, giving a total dimensionality of
+Feature extraction is applied to all 126 trajectories ($2~\text{hands} \times 21~\text{joints} \times 3~\text{axes}$). Each trajectory yields 2 autocorrelation features and 12 amplitude features, giving a total dimensionality of
 \begin{equation}
     2 \times 21 \times 3 \times (2 + 4 \times 3) = 1764.
     \label{eq:feature_dim}
@@ -135,13 +141,13 @@ Feature extraction is applied to all 126 trajectories. Each trajectory yields 2 
 \section{Feature Selection}
 \label{sec:fs}
 
-The feature dimensionality of 1,764 greatly exceeds the number of available samples in either clinical cohort, so feature selection is applied to mitigate overfitting and improve interpretability. Three methods are evaluated.
+The feature dimensionality of 1,764 greatly exceeds the number of available samples in either clinical cohort, so feature selection is applied to mitigate overfitting and improve interpretability. Three methods are evaluated. Each method independently ranks all 1,764 features according to its own criterion and retains the top 10 features for downstream classification.
 
-\emph{ANOVA F-value selection} ranks features by between-class to within-class variance ratio and retains those with the highest F-values. The method is computationally efficient but treats each feature independently and cannot capture inter-feature correlations.
+\emph{ANOVA F-value selection} ranks features by between-class to within-class variance ratio and retains the 10 features with the highest F-values. The method is computationally efficient but treats each feature independently and cannot capture inter-feature correlations.
 
-\emph{L1-regularised logistic regression} imposes an L1 penalty that shrinks uninformative feature coefficients to zero. Features with the largest absolute coefficients after regularisation are retained, implicitly accounting for linear feature interactions.
+\emph{L1-regularised logistic regression} imposes an L1 penalty that shrinks uninformative feature coefficients to zero. The 10 features with the largest absolute coefficients after regularisation are retained, implicitly accounting for linear feature interactions.
 
-\emph{XGBoost gain-based importance} trains an XGBoost model and ranks features by average gain across all tree splits, reflecting non-linear and combinatorial relationships. The resulting ranking is less directly interpretable than a linear coefficient. Table~\ref{tab:fs_methods_comparison} summarises the three methods.
+\emph{XGBoost gain-based importance} trains an XGBoost model and ranks features by average gain across all tree splits, reflecting non-linear and combinatorial relationships. The top 10 features by gain are selected; the resulting ranking is less directly interpretable than a linear coefficient. Table~\ref{tab:fs_methods_comparison} summarises the three methods.
 
 \begin{table}[H]
     \centering
@@ -167,10 +173,8 @@ Some joint pairs are anatomically unconnected yet may exhibit tight motion coupl
 \subsection{Pairwise Correlation Features}
 \label{sec:joint_corr_corr}
 
-A per-patient adjacency matrix $\mathbf{A}^{(n)} \in \mathbb{R}^{42 \times 42}$ is constructed from the kinematic feature vectors, covering all 21 joints of the left hand and 21 joints of the right hand. The 1,764-dimensional feature vector is first partitioned into 42 equal-length blocks of length $d = 42$, one per joint. Let $\mathbf{x}_i \in \mathbb{R}^{d}$ denote the feature block of joint $i$; stacking these blocks yields a data matrix $\mathbf{X}^{(n)} \in \mathbb{R}^{42 \times d}$ for patient $n$.
+A per-patient adjacency matrix $\mathbf{A}^{(n)} \in \mathbb{R}^{42 \times 42}$ is constructed from the kinematic feature vectors, covering all 21 joints of the left hand and 21 joints of the right hand. Recall from Section~\ref{sec:fe3} that each joint contributes $3 \text{ axes} \times (2 + 4 \times 3) = 42$ scalar features; the 1,764-dimensional feature vector is therefore partitioned into 42 equal-length blocks of length $d = 42$, one per joint. Let $\mathbf{x}_i \in \mathbb{R}^{d}$ denote the feature block of joint $i$; stacking these blocks yields a data matrix $\mathbf{X}^{(n)} \in \mathbb{R}^{42 \times d}$ for patient $n$.
 
-\subsubsection{Pearson Correlation Between Joints}
-\label{sec:pcc}
 The coupling strength between joint $i$ and joint $j$ is quantified by the Pearson correlation coefficient between their $d$-dimensional feature vectors $\mathbf{x}_i^{(n)}$ and $\mathbf{x}_j^{(n)}$:
 \begin{equation}
     C_{ij}^{(n)} =
@@ -188,29 +192,11 @@ where $x_{ik}^{(n)}$ is the $k$-th feature of joint $i$ for patient $n$ and $\ba
     A_{ij}^{(n)} = \frac{C_{ij}^{(n)} + 1}{2}, \qquad A_{ii}^{(n)} = 0.
     \label{eq:adj}
 \end{equation}
-The resulting matrix $\mathbf{A}^{(n)}$ is symmetric with zero diagonal, encoding the functional coupling strength between every joint pair for patient $n$.
-
-\subsubsection{Ledoit--Wolf Shrinkage Covariance}
-\label{sec:lw}
-Estimating a $42 \times 42$ covariance matrix from only $d = 42$ observations per joint is ill-conditioned with the standard sample estimator $\mathbf{S}^{(n)}$: when the number of variables equals the number of observations, the sample covariance is rank-deficient and its entries are noisy. The Ledoit--Wolf shrinkage estimator~\cite{ledoit2004honey} addresses this by forming a convex combination of the sample covariance and a scaled identity:
-\begin{equation}
-    \hat{\boldsymbol{\Sigma}}^{(n)} = (1 - \alpha)\,\mathbf{S}^{(n)} + \alpha\,\mu\,\mathbf{I},
-    \label{eq:lw}
-\end{equation}
-where $\mu = \mathrm{tr}(\mathbf{S}^{(n)})/42$ and $\alpha$ is the analytically optimal shrinkage coefficient. The shrinkage pulls the estimate towards a scaled identity matrix, improving conditioning without requiring cross-validation. Equation~\eqref{eq:corr} is then evaluated using $\hat{\boldsymbol{\Sigma}}^{(n)}$ in place of the sample covariance: the numerator becomes $\hat{\Sigma}_{ij}^{(n)}$ and the denominator becomes $\sqrt{\hat{\Sigma}_{ii}^{(n)}\,\hat{\Sigma}_{jj}^{(n)}}$, which is algebraically equivalent to the standard Pearson formula but with a regularised covariance. The result retains the $[-1,1]$ interpretation of linear correlation while benefiting from the more stable estimate.
-
-\subsubsection{Spearman Correlation with PD Stage}
-\label{sec:spearman}
-To identify which joint pairs carry the most discriminative information, a Spearman rank correlation is computed between the adjacency entry $A_{ij}^{(n)}$ and the MDS-UPDRS severity score $y^{(n)}$ across all patients:
-\begin{equation}
-    \rho_{ij} = \mathrm{Spearman}\!\left(\{A_{ij}^{(n)}\}_{n=1}^{N},\;\{y^{(n)}\}_{n=1}^{N}\right).
-    \label{eq:spearman}
-\end{equation}
-Spearman's $\rho$ is preferred over Pearson's $r$ here because MDS-UPDRS is an ordinal scale and the relationship between coupling strength and severity need not be linear. The resulting $\rho_{ij}$ matrix is visualised as a heatmap; pairs with $p < 0.05$ (uncorrected) are highlighted.
+The resulting matrix $\mathbf{A}^{(n)}$ is symmetric with zero diagonal, encoding the functional coupling strength between every joint pair for patient $n$. The upper-triangular entries of $\mathbf{A}^{(n)}$ are flattened and appended to the bilateral kinematic feature vector for the experiments reported in Section~\ref{sec:exp4}.
 
 \subsection{Adaptive Graph Convolutional Network}
 \label{sec:joint_corr_agcn}
 
-An AGCN (reviewed in Section~\ref{sec:rw_agcn}) constructs a learnable adjacency matrix from motion data, enabling the network to capture joint relationships across all joints in both hands simultaneously. Unlike the pairwise correlation descriptor, AGCN can express higher-order, jointly-defined inter-joint patterns.
+The feature-based AGCN-style model (reviewed conceptually in Section~\ref{sec:rw_agcn}) treats the bilateral feature vector as a graph over the 42 hand joints. Each joint node receives its corresponding kinematic descriptors as node features. Starting from a fixed hand-skeleton adjacency prior, the model learns an adaptive residual graph from the node features using a Mahalanobis distance and Gaussian kernel, enabling the network to capture joint relationships across both hands simultaneously. Unlike the pairwise correlation descriptor, this learned graph can express higher-order, jointly-defined inter-joint patterns.
 
-These two approaches form a deliberate contrast: pairwise correlation provides an interpretable baseline restricted to bilateral joint interactions, while AGCN learns a global, data-driven relational structure. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.
+These two approaches form a deliberate contrast: pairwise correlation provides an interpretable hand-crafted baseline restricted to explicit bilateral joint interactions, while the AGCN-style model learns a global, data-driven relational structure from the same feature space. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.

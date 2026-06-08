@@ -29,9 +29,9 @@ Table~\ref{tab:dataset_overview} contrasts the high-level properties of the two 
         Aspect & 2020 cohort & 2025 cohort \\
         \hline
         Video duration                          & Variable                & Fixed 30~s \\
-        Healthy:PD ratio under off-medication   & 7:3                     & 4:1 \\
-        Number of on-medication subjects        & 80                      & 103 \\
-        Number of off-medication subjects       & 192                     & 118 \\
+        Healthy:PD ratio under off-medication   & 134:57 ($\sim$7:3)      & 90:28 ($\sim$3:1) \\
+        Number of on-medication subjects        & 79                      & 103 \\
+        Number of off-medication subjects       & 191                     & 118 \\
         \hline
     \end{tabularx}
 \end{table}
@@ -48,8 +48,8 @@ The detailed stage distribution of the two cohorts is shown in Table~\ref{tab:da
         \hline
         Cohort & Medication & Stage~0 & Stage~1 & Stage~2 & Stage~3 & Stage~4 & Total \\
         \hline
-        \multirow{2}{*}{2020} & On  & 0   & 19 & 32 & 25 & 4 & 80  \\
-                                & Off & 135 & 13 & 27 & 16 & 1 & 192 \\
+        \multirow{2}{*}{2020} & On  & 0   & 19 & 32 & 24 & 4 & 79  \\
+                                & Off & 134 & 13 & 27 & 16 & 1 & 191 \\
         \hline
         \multirow{2}{*}{2025} & On  & 1   & 39 & 34 & 20 & 9 & 103 \\
                                 & Off & 90  & 15 & 8  & 4  & 1 & 118 \\
@@ -59,35 +59,59 @@ The detailed stage distribution of the two cohorts is shown in Table~\ref{tab:da
 
 Throughout this thesis, stage~0 is treated as the \emph{healthy} class and stages~1--4 are merged into the \emph{PD} class. To avoid confounding the underlying motor severity with the effect of levodopa therapy, all principal experiments restrict the analysis to off-medication recordings.
 
+\subsection{Ethical Approval and Informed Consent}
+\label{sec:ethics}
+
+The clinical recordings were collected at the National Taiwan University Hospital (NTUH) Parkinson's Disease outpatient clinic under the supervision of Dr.~Lin Jing-Xian. All participants provided informed consent for the use of their de-identified hand-rotation videos for research purposes prior to recording. The data shared with the present author for analysis contain no personally identifiable information; each recording is keyed only by an internal study identifier, the recording date, the MDS-UPDRS pronation-supination score, and the on/off medication status.
+
+\subsection{Subject Composition and Patient-Identifier Granularity}
+\label{sec:subject_overlap}
+
+The two cohorts differ markedly in the granularity of the available patient identifier, which directly affects how cross-validation should be interpreted. In the 2025 cohort, each off-medication recording originates from a distinct internal study identifier: 118 recordings correspond to 117 unique identifiers, so leave-one-out at the recording level is effectively leave-one-subject-out. In the 2020 cohort, by contrast, the 191 off-medication recordings are grouped under only 23 internal study identifiers, with a median of 7 dates per identifier (range 1--19) and pd\_stage labels that vary across dates within the same identifier. The 2020 identifier therefore corresponds to a study-batch grouping rather than a unique human subject, and the within-cohort LOOCV protocol described in Section~\ref{sec:loocv} operates at the recording (identifier $\times$ date) level rather than at the unique-subject level. This is a known limitation of the 2020 cohort and is revisited in the discussion of LOOCV results in Chapter~\ref{chap:results}.
+
+A direct comparison of the two identifier spaces confirms that no internal study identifier appears in both the 2020 and the 2025 off-medication cohort: the intersection of the two identifier sets is empty. The 2020-to-2025 cross-cohort transfer protocol of Section~\ref{sec:cross_cohort} therefore evaluates generalisation to a strictly unseen set of recordings under a different recording protocol, even if subject-level disjointness within the 2020 cohort cannot be guaranteed.
+
+\subsection{Demographic Characteristics}
+\label{sec:demographics}
+
+Demographic and neuropsychological information was extracted from the linked NTUH de-identified clinical registry. For the 2025 off-medication cohort all 118 recordings could be matched against the registry, allowing a full demographic summary; for the 2020 off-medication cohort the smaller internal identifier space matches only a subset of the registry and demographic information is not reported in this thesis. Table~\ref{tab:demographics_2025} summarises the demographic and screening-scale characteristics of the 2025 off-medication cohort, computed at the recording level.
+
+\begin{table}[H]
+    \centering
+    \caption{Demographic summary of the 2025 off-medication cohort (recording-level; mean $\pm$ SD where applicable)}
+    \label{tab:demographics_2025}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.36\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+        \hline
+        Characteristic & Healthy ($n=90$) & PD ($n=28$) & Overall ($n=118$) \\
+        \hline
+        Age, years              & $72.9 \pm 6.9$    & $68.8 \pm 11.7$  & $71.9 \pm 8.4$ \\
+        Sex (female / male)     & 47 / 43           & 9 / 19           & 56 / 62 \\
+        Right-handed, $n$ (\%)  & --                & --               & 117 (99.2\%) \\
+        MMSE                    & --                & --               & $28.1 \pm 2.4$ (n=99) \\
+        MoCA                    & --                & --               & $26.5 \pm 3.0$ (n=86) \\
+        MDS-UPDRS Part~III      & --                & $23.5 \pm 10.5$ (n=20) & $23.5 \pm 10.5$ (n=21) \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+The cohort is elderly with a near-balanced sex distribution and is overwhelmingly right-handed (117 of 118 recordings; the remaining recording has an other/unspecified handedness code). The high proportion of right-handed subjects supports the use of the motor reserve hypothesis (Section~\ref{sec:rw_motor_reserve}) as an interpretive lens for the left-versus-right asymmetry reported in Chapter~\ref{chap:results}, although individual handedness was not available for the 2020 cohort and the asymmetry is therefore interpreted at the cohort level rather than per subject. MMSE and MoCA scores indicate cognitively intact participants on average, and the MDS-UPDRS Part~III score was recorded for a minority of the PD subset only.
+
 \section{Experimental Roadmap}
 \label{sec:roadmap}
 
 Five experiments are conducted in this thesis, each motivated by a specific research question concerning feature representation, feature dimensionality, lateralization effects, inter-joint correlation, and graph-based learning for PD-versus-healthy binary classification on the NTUH cohorts.
 
-\subsection{Experiment 1: Baseline Binary Classification with Thumb-Tip and Bilateral Hand-Joint Features}
-\label{sec:roadmap_exp1}
+\textbf{Experiment~1} establishes a baseline by performing binary classification using two feature sets: thumb-tip features and full bilateral hand-joint features. Three classifiers are evaluated---Logistic Regression, Random Forest, and XGBoost---to assess the discriminative capacity of these features without any feature selection.
 
-The first experiment establishes a baseline by performing binary classification using two feature sets: thumb-tip features and full bilateral hand-joint features. Three classifiers are evaluated---Logistic Regression, Random Forest, and XGBoost---to assess the discriminative capacity of these features without any feature selection.
+\textbf{Experiment~2} addresses the high feature dimensionality arising from bilateral joint representations. Feature selection is applied to the full bilateral hand-joint feature set using three methods---ANOVA F-test, L1-regularized Logistic Regression, and XGBoost feature importance---each followed by XGBoost binary classification.
 
-\subsection{Experiment 2: Feature Selection with XGBoost on Bilateral Hand-Joint Features}
-\label{sec:roadmap_exp2}
+\textbf{Experiment~3} repeats the pipeline of Experiment~2 separately on left-hand-only and right-hand-only feature subsets. By comparing the classification performance of each hand independently, this experiment aims to expose asymmetric motor decline and investigate the influence of motor reserve on PD discrimination.
 
-The second experiment addresses the high feature dimensionality arising from bilateral joint representations. Feature selection is applied to the full bilateral hand-joint feature set using three methods---ANOVA F-test, L1-regularized Logistic Regression, and XGBoost feature importance---each followed by XGBoost binary classification.
+\textbf{Experiment~4} extends the bilateral feature set by appending pairwise Pearson correlation coefficients computed between per-joint feature vectors as additional features. The same three feature-selection methods from Experiment~2 are then applied, followed by XGBoost classification, to assess whether statistically derived inter-joint motion correlation improves discriminative performance.
 
-\subsection{Experiment 3: Hand-Specific Analysis to Investigate Motor Reserve}
-\label{sec:roadmap_exp3}
-
-The third experiment repeats the pipeline of Experiment~2 separately on left-hand-only and right-hand-only feature subsets. By comparing the classification performance of each hand independently, this experiment aims to expose asymmetric motor decline and investigate the influence of motor reserve on PD discrimination.
-
-\subsection{Experiment 4: Augmenting Bilateral Features with Inter-Joint Correlation}
-\label{sec:roadmap_exp4}
-
-The fourth experiment extends the bilateral feature set by appending pairwise Pearson correlation coefficients computed between joint-wise time series as additional features. The same three feature-selection methods from Experiment~2 are then applied, followed by XGBoost classification, to assess whether statistically derived inter-joint motion correlation improves discriminative performance.
-
-\subsection{Experiment 5: Adaptive Graph Convolutional Network}
-\label{sec:roadmap_exp5}
-
-The fifth experiment replaces the hand-crafted feature pipeline with an Adaptive Graph Convolutional Network (AGCN) that operates directly on the joint-coordinate sequences. Rather than relying on predefined correlation statistics, the AGCN learns inter-joint motion relationships in an end-to-end manner through a trainable adjacency matrix, allowing the model itself to discover which joint interactions are most informative for PD classification.
+\textbf{Experiment~5} evaluates a feature-based Adaptive Graph Convolutional Network style model (AGCN-style) on the full bilateral hand-crafted feature representation. Instead of appending predefined pairwise correlation statistics, the 1,764-dimensional feature vector is reshaped into a 42-node joint graph, and the AGCN-style model learns inter-joint relationships through an adaptive adjacency mechanism, allowing the model to discover which joint interactions are most informative for PD classification while retaining the same kinematic descriptors used by the earlier feature-based experiments.
 
 \section{Experimental Setting}
 \label{sec:exp_setting}
@@ -95,33 +119,53 @@ The fifth experiment replaces the hand-crafted feature pipeline with an Adaptive
 \subsection{Within-Cohort Validation}
 \label{sec:loocv}
 
-Within a single cohort, a Leave-One-Out Cross-Validation (LOOCV) protocol is employed to maximize the use of the limited clinical data. In each iteration, one subject is held out as the test sample and the remaining subjects constitute the training set. For Experiments~2 and~3, feature selection is re-executed on the training fold of every LOOCV iteration so that no information from the held-out subject can influence the selected feature subset. The out-of-fold predicted probability of each subject is stored, and the pooled probabilities are used to construct a single ROC curve per experimental configuration.
+Within a single cohort, a Leave-One-Out Cross-Validation (LOOCV) protocol is employed to maximize the use of the limited clinical data. In each iteration, one subject is held out as the test sample and the remaining subjects constitute the training set. For Experiments~2--4, feature selection is re-executed on the training fold of every LOOCV iteration so that no information from the held-out subject can influence the selected feature subset. Fold-dependent preprocessing, including missing-value imputation, feature standardisation, and class-weight estimation, is likewise fit only on the training fold and then applied to the held-out subject. The out-of-fold predicted probability of each subject is stored, and the pooled probabilities are used to construct a single ROC curve per experimental configuration.
 
 \subsection{Cross-Cohort Evaluation}
 \label{sec:cross_cohort}
 
 In addition to within-cohort LOOCV, a stricter cross-cohort transfer protocol is applied to assess generalization across recording conditions. The model is trained on the complete 2020 off-medication cohort and evaluated on the complete 2025 off-medication cohort. Feature selection is performed exclusively on the training cohort, and the resulting feature indices are applied without modification to the unseen test cohort. Accuracy, F1-score, and AUROC are reported on the test cohort.
 
+\subsection{Fold-wise Preprocessing and Normalisation}
+\label{sec:fold_preprocess}
+
+All preprocessing operations that estimate distributional quantities are nested inside the corresponding training split. In the hand-crafted feature experiments, missing numerical feature values are imputed using medians computed from the training fold or training cohort. When a standardised representation is required, \texttt{StandardScaler} is fit on the same training data and reused unchanged for the held-out fold or the 2025 test cohort. This applies to the baseline joint-feature classifiers, to the ANOVA and L1-regularised feature-selection paths, and to the feature-based AGCN-style model. XGBoost-based feature selection and final XGBoost classifiers are trained only on the corresponding training subset and do not require a separately standardised input scale. This design prevents the held-out sample or target cohort from influencing either the feature scale or the selected feature set.
+
+For the AGCN-style model, the fold-specific standardised 1,764-dimensional vector is reshaped into a 42-node graph, with 42 descriptors assigned to each bilateral hand-joint node. Class weights for the weighted cross-entropy loss are computed from the training data of the corresponding fold or source split.
+
 \subsection{Evaluation Metrics}
 \label{sec:metrics}
 
-Model performance is evaluated using three complementary metrics: \emph{AUROC}, \emph{accuracy}, and \emph{F1-score}. AUROC is threshold-independent and serves as the primary metric for cross-model comparison. Accuracy and F1-score are threshold-dependent and are computed after determining an optimal decision boundary via the Youden index.
+Model performance is evaluated using three complementary metrics: \emph{AUROC}, \emph{accuracy}, and \emph{F1-score}. AUROC is threshold-independent and serves as the primary metric for cross-model comparison. Accuracy and F1-score are threshold-dependent and require a fixed decision threshold; the optimal threshold is selected via the Youden index~\cite{youden1950index}, estimated only from training or validation predictions and held fixed for test evaluation.
 
-\subsubsection{Youden Index}
-
-The Youden index~\cite{youden1950index} is defined as the maximum vertical distance from the ROC curve to the diagonal chance line:
+The Youden index is defined as the maximum vertical distance from the ROC curve to the diagonal chance line:
 \begin{equation}
-    J(\tau) = \mathrm{TPR}(\tau) - \mathrm{FPR}(\tau),
+    J(\theta) = \mathrm{TPR}(\theta) - \mathrm{FPR}(\theta),
     \label{eq:youden}
 \end{equation}
-where $\mathrm{TPR}(\tau)$ and $\mathrm{FPR}(\tau)$ denote the sensitivity and one-minus-specificity at threshold $\tau$, respectively. Geometrically, the diagonal represents a random classifier (AUROC $= 0.5$), and $J(\tau)$ measures how far the operating point departs from this baseline. The optimal threshold is
+where $\mathrm{TPR}(\theta)$ and $\mathrm{FPR}(\theta)$ denote the sensitivity and one-minus-specificity at classification threshold $\theta$, respectively. Geometrically, the diagonal represents a random classifier (AUROC $= 0.5$), and $J(\theta)$ measures how far the operating point departs from this baseline. The optimal threshold is
 \begin{equation}
-    \tau^{*} = \arg\max_{\tau}\; J(\tau),
+    \theta^{*} = \arg\max_{\theta}\; J(\theta),
     \label{eq:youden_opt}
 \end{equation}
 which simultaneously maximises sensitivity and specificity without imposing an \emph{a priori} cost asymmetry between false positives and false negatives.
 
-This criterion is particularly suitable for clinical screening tasks. In medical datasets, class distributions are typically imbalanced and the cost of missing a true case (false negative) may differ substantially from the cost of a false alarm. The 0.5 default threshold---optimal only when classes are balanced and misclassification costs are equal---is therefore inappropriate. The Youden index selects the threshold that provides the best balance between sensitivity and specificity given the observed ROC curve, without requiring explicit specification of misclassification costs. The resulting $\tau^{*}$ is used to binarize predicted probabilities into class labels, from which accuracy and F1-score are computed.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.55\linewidth]{figures/younden_index}
+    \caption{Geometric interpretation of the Youden index on a representative ROC curve (AUC = 0.85). The index $J$ equals the maximum vertical distance from the curve to the chance diagonal; the optimal cutoff is the operating point achieving this maximum.}
+    \label{fig:youden}
+\end{figure}
+
+Fig.~\ref{fig:youden} illustrates the geometric interpretation: the diagonal represents a random classifier (AUC $= 0.5$), and the starred point marks the threshold $\theta^{*}$ at which the vertical distance from the ROC curve to the diagonal is greatest.
+
+This criterion is particularly suitable for clinical screening tasks. In medical datasets, class distributions are typically imbalanced and the cost of missing a true case (false negative) may differ substantially from the cost of a false alarm. The 0.5 default threshold---optimal only when classes are balanced and misclassification costs are equal---is therefore inappropriate. The Youden index selects the threshold that provides the best balance between sensitivity and specificity given the observed ROC curve, without requiring explicit specification of misclassification costs.
+
+The practical estimation of $\theta^{*}$ differs between the two evaluation protocols and between the two model families, and these details are reported here for transparency.
+
+For \emph{within-cohort LOOCV}, the out-of-fold predicted probability of every subject is accumulated across folds and $\theta^{*}$ is computed once from this pooled set of out-of-fold predictions. Because each predicted probability is generated by a model that has never seen the corresponding subject during training, this procedure is equivalent to using a validation-derived operating point in the conventional sense.
+
+For \emph{cross-cohort transfer}, the operating point is estimated from the source cohort and reused unchanged on the 2025 test cohort. In the XGBoost feature-selection and graph-concat experiments, $\theta^{*}$ is computed from a source-cohort LOOCV pass on the 2020 training data; in the AGCN experiment, the threshold saved from the source-cohort LOOCV run is applied to the target cohort. The 2025 labels are used only for final metric computation. This avoids test-cohort threshold tuning for the reported accuracy and F1-score, while AUROC remains threshold-independent.
 
 \subsection{Training-Termination Criteria}
 \label{sec:termination}
@@ -131,6 +175,7 @@ Each model family adopts a stopping criterion appropriate to its optimization pr
 \begin{itemize}
     \item \textbf{Logistic Regression} converges when the change in training loss between consecutive iterations falls below a predefined tolerance.
     \item \textbf{Random Forest} and \textbf{XGBoost} are trained for a fixed number of trees and nodes, respectively, as specified in Section~\ref{sec:exp_setting_hparams}.
+    \item \textbf{AGCN-style model} is trained for at most 100 epochs and uses early stopping with a patience of 20 epochs without improvement in validation loss.
 \end{itemize}
 
 \subsection{Hyperparameters}
@@ -164,22 +209,32 @@ Class imbalance across LOOCV folds is mitigated by rescaling the XGBoost positiv
 
 \begin{table}[H]
     \centering
-    \caption{Architectural and optimization hyperparameters for the AGCN framework}
+    \caption{Architectural and optimization hyperparameters for the feature-based AGCN-style framework}
     \label{tab:agcn_params}
     \small
     \setlength{\tabcolsep}{12pt}
-    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
         \hline
         Hyperparameter & Value / Configuration \\
         \hline
-        Hidden channel dimensions   & $\{64,\, 128,\, 256\}$ \\
+        Input feature dimension     & $1,764$ \\
+        Graph representation        & $42$ joint nodes with $42$ descriptors per node \\
+        Adaptive graph mode         & Same-block Mahalanobis/Gaussian residual graph \\
+        Hidden channel dimensions   & $\{64,\,128,\,256\}$ \\
         Dropout probability         & $0.5$ \\
-        Optimizer                   & Adam \\
+        Optimizer                   & AdamW \\
+        Learning rate               & $0.001$ \\
+        Weight decay                & $0.01$ \\
+        Maximum number of epochs    & $100$ \\
+        Batch size                  & $16$ \\
+        Early stopping              & Patience of $20$ epochs without validation-loss improvement \\
         Loss function               & Weighted cross-entropy \\
         Number of graph nodes       & $42$ (bilateral hand joints) \\
         \hline
     \end{tabularx}
 \end{table}
+
+For AGCN-style input construction, the full bilateral feature vector is partitioned by joint. The resulting graph contains the 21 MediaPipe joints from the left hand and the 21 corresponding joints from the right hand. A fixed hand-skeleton adjacency provides the structural prior, while the same-block adaptive component learns a sample-dependent residual graph from the node features before graph convolution and global average pooling.
 
 % Restore default spacing for subsequent chapters
 \titlespacing*{\section}{0pt}{3.5ex plus 1ex minus .2ex}{2.3ex plus .2ex}

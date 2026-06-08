@@ -32,9 +32,6 @@ The composite bradykinesia score achieved high agreement with clinician ratings,
 
 Among the five assessed items, pronation-supination (item 3.6) was the most challenging to quantify automatically. Its ordinal balanced accuracy of 40\% was the lowest of all items, and the corresponding binary accuracy (73\%) and AUC-ROC (0.75) were similarly below the cross-item averages. The authors attributed part of this difficulty to the angular-velocity signal construction: although using the thumb-to-little-finger vector angle mitigates absolute scale differences across recording distances, the rotational motion is inherently more susceptible to partial occlusion and perspective projection artefacts than the planar amplitude signals used for finger tapping or hand movement. Notwithstanding these challenges, the system operated without additional dedicated hardware or modification of existing clinical workflows.
 
-\subsection{Synthesis}
-\label{subsec:rw_video_synthesis}
-
 Table~\ref{tab:video_pd_comparison} summarises the two systems along the dimensions most relevant to this thesis.
 
 \begin{table}[H]
@@ -96,7 +93,7 @@ For these reasons, MediaPipe Hands is adopted as the skeleton-extraction tool in
 
 Chung et al.~\cite{chung2020motor} reviewed the concept of \emph{motor reserve} (MR) as a framework for explaining individual differences in Parkinsonian motor deficits that cannot be accounted for by the degree of nigrostriatal dopaminergic depletion alone. The central premise is that, under equivalent pathological burden, body parts used more frequently in daily life accumulate greater motor reserve, enabling the corresponding cortical and subcortical networks to compensate for early nigrostriatal damage and thereby mask the clinical expression of bradykinesia. Conversely, less-frequently used body parts possess lower reserve, and pathological signs emerge earlier and with greater prominence.
 
-This principle carries a specific implication for bilateral hand assessment in PD. In a predominantly right-handed cohort, the dominant (right) hand benefits from higher accumulated motor reserve and is more likely to exhibit compensated, attenuated motor deficits at a given stage of pathology. The non-dominant (left) hand, carrying less reserve, tends to manifest bradykinesia more saliently and at an earlier disease stage. Table~\ref{tab:motor_reserve_summary} summarises this behavioural contrast.
+This principle carries a specific implication for bilateral hand assessment in PD. If a cohort is predominantly right-handed, the dominant hand would be expected to benefit from higher accumulated motor reserve and may exhibit compensated, attenuated motor deficits at a given stage of pathology. The non-dominant hand, carrying less reserve, may manifest bradykinesia more saliently and at an earlier disease stage. Because subject-level handedness labels are not available in the present dataset, this mechanism is treated as a plausible interpretive hypothesis rather than direct evidence that the left hand is non-dominant for every participant. Table~\ref{tab:motor_reserve_summary} summarises this behavioural contrast.
 
 \begin{table}[H]
     \centering
@@ -106,7 +103,7 @@ This principle carries a specific implication for bilateral hand assessment in P
     \setlength{\tabcolsep}{8pt}
     \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
         \hline
-        Aspect & Dominant hand (usually right) & Non-dominant hand (usually left) \\
+        Aspect & Dominant hand (often right) & Non-dominant hand (often left) \\
         \hline
         Daily-use frequency        & High                                  & Low \\
         Accumulated motor reserve  & High                                  & Low \\
@@ -115,7 +112,7 @@ This principle carries a specific implication for bilateral hand assessment in P
     \end{tabularx}
 \end{table}
 
-This asymmetry provides the principal qualitative explanation for the empirically stronger and more transferable classification performance of left-hand features observed in Chapter~\ref{chap:results}: because the non-dominant hand is less protected by motor reserve, its kinematic trajectory reflects the underlying pathology more directly, yielding features that are more discriminative and more consistent across subjects.
+This asymmetry provides one qualitative explanation for the empirically stronger and more transferable classification performance of left-hand features observed in Chapter~\ref{chap:results}. In the absence of individual handedness data, however, the result should be interpreted conservatively as a left-versus-right lateralisation pattern that is compatible with motor reserve, not as proof of non-dominant-hand impairment in every subject.
 
 \section{Adaptive Graph Convolutional Neural Networks}
 \label{sec:rw_agcn}
