@@ -3,8 +3,12 @@
 \chapter{Proposed Methods}
 \label{chap:methods}
 
+This chapter presents the proposed method in detail. Section~\ref{sec:pipeline} gives an overview of the end-to-end assessment pipeline. Section~\ref{sec:fe} then describes the kinematic feature-extraction stage, Section~\ref{sec:fs} the three feature-selection strategies, and Section~\ref{sec:joint_corr} the joint-correlation module together with the feature-based AGCN-style branch.
+
 \section{Overall Pipeline}
 \label{sec:pipeline}
+
+The proposed system is a four-stage pipeline for automated PD assessment from hand-rotation video, as illustrated in Fig.~\ref{fig:pipeline}. A raw video is first processed by MediaPipe Hands to extract a temporal sequence of 21 three-dimensional keypoint coordinates per hand. Three families of kinematic descriptors---\emph{frequency}, \emph{clarity}, and \emph{amplitude}---are then computed from the resulting skeletal time series. The high-dimensional feature vector is subsequently either reduced by one of three feature-selection strategies for the conventional classifiers, or organised as a joint-wise feature graph for the feature-based adaptive graph convolutional network (AGCN-style) model. The final classifier outputs a binary PD-versus-healthy label.
 
 \begin{figure}[H]
     \centering
@@ -12,8 +16,6 @@
     \caption{Overview of the proposed four-stage assessment pipeline.}
     \label{fig:pipeline}
 \end{figure}
-
-The proposed system is a four-stage pipeline for automated PD assessment from hand-rotation video, as illustrated in Fig.~\ref{fig:pipeline}. A raw video is first processed by MediaPipe Hands to extract a temporal sequence of 21 three-dimensional keypoint coordinates per hand. Three families of kinematic descriptors---\emph{frequency}, \emph{clarity}, and \emph{amplitude}---are then computed from the resulting skeletal time series. The high-dimensional feature vector is subsequently either reduced by one of three feature-selection strategies for the conventional classifiers, or organised as a joint-wise feature graph for the feature-based adaptive graph convolutional network (AGCN-style) model. The final classifier outputs a binary PD-versus-healthy label.
 
 The remainder of this chapter describes each stage in detail. Section~\ref{sec:fe} covers feature extraction, Section~\ref{sec:fs} describes the three feature-selection methods, and Section~\ref{sec:joint_corr} presents the joint-correlation module and the feature-based AGCN-style branch.
 
@@ -25,16 +27,18 @@ Feature extraction is applied independently to every combination of hand, joint,
 \subsection{Skeleton Sequence Preprocessing}
 \label{sec:skeleton_preprocess}
 
-The skeleton extraction code processes each video frame sequentially with MediaPipe Hands and stores the resulting sequence in the original frame order. If a hand is detected in a frame, all 21 MediaPipe landmarks are saved as normalised $(x,y,z)$ coordinates. If MediaPipe fails to detect a hand in an intermediate frame, the frame is retained but represented by an all-zero $21 \times 3$ landmark array, preserving the temporal length of the original video. Videos with no valid hand detections are discarded. For compatibility with older skeleton files containing only two-dimensional coordinates, a zero-valued $z$ coordinate is appended before feature extraction.
+The skeleton extraction code processes each video frame sequentially with MediaPipe Hands and stores the resulting sequence in the original frame order. If a hand is detected in a frame, all 21 MediaPipe landmarks are saved as normalised $(x,y,z)$ coordinates. If MediaPipe fails to detect a hand in an intermediate frame, the frame is retained but filled with an all-zero $21 \times 3$ landmark array, preserving the temporal length of the original video. Videos with no valid hand detections are discarded. For compatibility with older skeleton files containing only two-dimensional coordinates, a zero-valued $z$ coordinate is appended before feature extraction.
 
-No explicit per-video frame-rate resampling is applied in the hand-crafted feature pipeline. The frequency descriptor is computed from the first positive autocorrelation peak using a nominal sampling rate of 60 frames per second; therefore, temporal alignment is performed in frame units rather than by interpolating all recordings onto a shared time grid. Variable recording lengths are handled by summary statistics over each available trajectory. The AGCN-style experiment uses the same summary-feature representation rather than the raw frame sequence: the 1,764-dimensional bilateral feature vector is reshaped into a 42-node graph, where each node corresponds to one MediaPipe hand joint and stores the descriptors associated with that joint.
+Zero-filled frames contribute zero-valued samples to the corresponding joint-axis trajectories. They do not introduce spurious oscillatory peaks, but they do dilute amplitude statistics (means and medians are pulled toward zero in proportion to the fraction of failed frames). Their effect on the frequency estimate is limited, because the autocorrelation-peak lag is driven by the dominant periodicity of the non-zero portion of the signal rather than by absolute sample magnitudes. In both cohorts, MediaPipe detection failures on fully visible horizontal recordings are rare, so this implicit zero-imputation has a negligible practical effect on the feature distributions.
+
+No explicit per-video frame-rate resampling is applied in the hand-crafted feature pipeline. The frequency descriptor is computed from the first positive autocorrelation peak using a nominal sampling rate of $f_s = 60$ frames per second, consistent with the 60\,fps capture rate of the smartphones and tablets used for data collection. Because the same nominal rate is applied uniformly to all recordings, the frequency descriptor retains its discriminative validity for cross-subject comparison even if individual devices deviate slightly from this rate; temporal alignment is therefore performed in frame units rather than by interpolating all recordings onto a shared time grid. Variable recording lengths are handled by summary statistics over each available trajectory. The AGCN-style experiment uses the same summary-feature representation rather than the raw frame sequence: the 1,764-dimensional bilateral feature vector is reshaped into a 42-node graph, where each node corresponds to one MediaPipe hand joint and stores the descriptors associated with that joint.
 
 \subsection{Frequency and Clarity}
 \label{sec:fe1}
 
 Two scalar descriptors---\emph{frequency} and \emph{clarity}---are derived from the autocorrelation of each joint-axis trajectory. Clinically, PD patients tend to perform the pronation-supination task at a slower pace and with irregular rhythm; both descriptors are therefore expected to carry strong discriminative signals.
 
-Before autocorrelation is computed, each trajectory is detrended to remove low-frequency drift caused by gradual hand-position changes or camera motion. A polynomial is fit to the signal and subtracted, yielding a zero-mean detrended waveform, as shown in Fig.~\ref{fig:wave_detrend}.
+Before autocorrelation is computed, each trajectory is detrended to remove low-frequency drift caused by gradual hand-position changes or camera motion. A degree-10 polynomial is fit to the normalised time axis $t \in [0,1]$ of the signal and subtracted, yielding a zero-mean detrended waveform, as shown in Fig.~\ref{fig:wave_detrend}. A degree of 10 is chosen to capture slow, non-linear baseline wander while leaving the rapid rotation cycles intact; lower degrees risk leaving residual drift, while higher degrees risk removing genuine low-frequency movement components.
 
 \begin{figure}[H]
     \centering
@@ -62,18 +66,18 @@ Before autocorrelation is computed, each trajectory is detrended to remove low-f
     \label{fig:wave_detrend}
 \end{figure}
 
-Let $r(\tau)$ denote the autocorrelation of the detrended signal, and let $\tau_{\mathrm{peak}}$ be the lag, measured in frames, of the first positive-lag peak. The \emph{frequency} descriptor is computed as $f_{\mathrm{rot}} = f_s / \tau_{\mathrm{peak}}$, where $f_s=60$ frames per second is the nominal sampling rate used in the implementation; $\tau_{\mathrm{peak}}$ therefore corresponds to the dominant rotation period. The \emph{clarity} descriptor is the normalised peak height $r(\tau_{\mathrm{peak}})/r(0)$; values near one indicate high periodicity while low values reflect irregular rhythm. Fig.~\ref{fig:autocorr} shows a representative autocorrelation with the peak lag annotated.
+Let $r(\tau)$ denote the autocorrelation of the detrended signal, and let $\tau_{\mathrm{peak}}$ be the lag, measured in frames, of the first positive-lag peak. Peaks are detected with \texttt{scipy.signal.find\_peaks} restricted to positive heights ($r(\tau) > 0$), so only genuine periodicity peaks are admitted and the zero-crossing regions are excluded. The \emph{frequency} descriptor is computed as $f_{\mathrm{rot}} = f_s / \tau_{\mathrm{peak}}$, where $f_s=60$ frames per second is the nominal sampling rate described above; $\tau_{\mathrm{peak}}$ therefore corresponds to the dominant rotation period. The \emph{clarity} descriptor is the normalised peak height $r(\tau_{\mathrm{peak}})/r(0)$; values near one indicate high periodicity while low values reflect irregular rhythm. Fig.~\ref{fig:autocorr} shows a representative autocorrelation with the peak lag annotated.
 
 \subsection{Amplitude Representations}
 \label{sec:fe2}
 
 PD patients typically exhibit progressive amplitude reduction and cycle-to-cycle fluctuation within a single recording trial. Four complementary representations are computed from the detrended trajectory to capture different aspects of this phenomenon, as illustrated in Fig.~\ref{fig:amplitude_detection}.
 
-\emph{Cycle-by-cycle amplitude} identifies all local maxima and minima in the detrended trajectory, pairs adjacent peaks and valleys, and records the absolute difference of each pair as the instantaneous one-cycle amplitude. This representation gives the most direct measure of per-cycle displacement but is sensitive to isolated noise spikes.
+\emph{Cycle-by-cycle amplitude} identifies all local maxima and minima in the detrended trajectory, pairs adjacent peaks and valleys, and records half the absolute difference of each adjacent peak-valley pair as the instantaneous one-cycle amplitude. Local extrema are detected within a $\pm 10$-frame neighbourhood: a sample is classified as a local maximum (or minimum) if its value equals the maximum (or minimum) of all samples within $\pm 10$ frames. This neighbourhood width of 10 frames is chosen to suppress noise spikes shorter than one sixth of a typical rotation cycle at 60\,fps while remaining sensitive to genuine cycle extrema. This representation gives the most direct measure of per-cycle displacement but is sensitive to isolated noise spikes.
 
-\emph{Rolling peak-to-peak} avoids explicit peak detection by sliding a fixed-length window along the trajectory and recording, at each position, the local maximum minus the local minimum. This coarser amplitude estimate is more robust to noise than the cycle-by-cycle approach.
+\emph{Rolling peak-to-peak} avoids explicit peak detection by sliding a window along the trajectory and recording, at each position, half the difference between the local maximum and minimum. The window length is set adaptively per recording: it equals the median inter-peak interval computed from the detected local maxima; if fewer than two peaks are found, a fallback of 15 frames is used; the window is clipped to a minimum of 5 frames. This recording-specific length ensures the window spans roughly one full rotation cycle regardless of how fast the subject performs the task. This coarser amplitude estimate is more robust to noise than the cycle-by-cycle approach.
 
-\emph{Rolling RMS} computes the root-mean-square of the detrended signal within a sliding window at each frame. The squaring operation distributes any single outlier's influence across the window, making rolling RMS the most noise-robust of the four representations.
+\emph{Rolling RMS} computes the root-mean-square (RMS) of the mean-subtracted detrended signal within a sliding window of the same adaptively set length as the rolling peak-to-peak window. The squaring operation distributes any single outlier's influence across the window, making rolling RMS the most noise-robust of the four representations.
 
 \emph{Hilbert envelope} derives instantaneous amplitude from the analytic signal. The Hilbert transform supplies the $90^{\circ}$-shifted quadrature component of the detrended waveform; the pointwise magnitude of the resulting complex analytic signal yields the instantaneous envelope. This representation tracks amplitude modulation at per-frame resolution, making it the most sensitive to rapid amplitude changes and complementary to the smoothed rolling RMS.
 
@@ -170,33 +174,29 @@ The feature dimensionality of 1,764 greatly exceeds the number of available samp
 
 Some joint pairs are anatomically unconnected yet may exhibit tight motion coupling---or abnormal decoupling---under PD. Two approaches are evaluated to encode such inter-joint relationships.
 
-\subsection{Pairwise Correlation Features}
+\subsection{Graph-Aggregated Joint-Correlation Features}
 \label{sec:joint_corr_corr}
 
-A per-patient adjacency matrix $\mathbf{A}^{(n)} \in \mathbb{R}^{42 \times 42}$ is constructed from the kinematic feature vectors, covering all 21 joints of the left hand and 21 joints of the right hand. Recall from Section~\ref{sec:fe3} that each joint contributes $3 \text{ axes} \times (2 + 4 \times 3) = 42$ scalar features; the 1,764-dimensional feature vector is therefore partitioned into 42 equal-length blocks of length $d = 42$, one per joint. Let $\mathbf{x}_i \in \mathbb{R}^{d}$ denote the feature block of joint $i$; stacking these blocks yields a data matrix $\mathbf{X}^{(n)} \in \mathbb{R}^{42 \times d}$ for patient $n$.
+Experiment~4 augments the bilateral kinematic feature vector with a 203-dimensional graph-feature descriptor that encodes inter-joint correlation structure, bilateral asymmetry, and block-level intra/inter-hand coupling. The construction proceeds as follows.
 
-The coupling strength between joint $i$ and joint $j$ is quantified by the Pearson correlation coefficient between their $d$-dimensional feature vectors $\mathbf{x}_i^{(n)}$ and $\mathbf{x}_j^{(n)}$:
-\begin{equation}
-    C_{ij}^{(n)} =
-    \frac{\displaystyle\sum_{k=1}^{d}
-          \!\left(x_{ik}^{(n)}-\bar{x}_{i}^{(n)}\right)
-          \!\left(x_{jk}^{(n)}-\bar{x}_{j}^{(n)}\right)}
-         {\sqrt{\displaystyle\sum_{k=1}^{d}
-                \!\left(x_{ik}^{(n)}-\bar{x}_{i}^{(n)}\right)^{2}}
-          \;\sqrt{\displaystyle\sum_{k=1}^{d}
-                  \!\left(x_{jk}^{(n)}-\bar{x}_{j}^{(n)}\right)^{2}}},
-    \label{eq:corr}
-\end{equation}
-where $x_{ik}^{(n)}$ is the $k$-th feature of joint $i$ for patient $n$ and $\bar{x}_{i}^{(n)}$ is its mean over the $d$ features. $C_{ij}^{(n)} \in [-1, 1]$, with $+1$ indicating perfect co-movement and $-1$ indicating perfect anti-movement between the two joints. Because graph adjacency weights are required to be non-negative, the Pearson correlation is remapped to $[0, 1]$:
-\begin{equation}
-    A_{ij}^{(n)} = \frac{C_{ij}^{(n)} + 1}{2}, \qquad A_{ii}^{(n)} = 0.
-    \label{eq:adj}
-\end{equation}
-The resulting matrix $\mathbf{A}^{(n)}$ is symmetric with zero diagonal, encoding the functional coupling strength between every joint pair for patient $n$. The upper-triangular entries of $\mathbf{A}^{(n)}$ are flattened and appended to the bilateral kinematic feature vector for the experiments reported in Section~\ref{sec:exp4}.
+\begin{itemize}
+    \item \textbf{Feature matrix and shrinkage correlation.} The 1,764-dimensional bilateral feature vector of each patient is reshaped into a $42 \times 42$ matrix, where $n=42$ is the number of MediaPipe joints (21 left, 21 right), each carrying 42 kinematic descriptors. Every pair of joints yields one Ledoit-Wolf shrinkage correlation~\cite{ledoit2004well} (treating the descriptors as observations and the joints as variables), producing a $42 \times 42$ inter-joint correlation matrix bounded between $-1$ and $1$. Shrinkage is used instead of the ordinary Pearson estimator because the number of joints equals the number of descriptors (both 42), an ill-conditioned regime in which the plain sample covariance matrix would be singular.
+
+    \item \textbf{Graph aggregation and node-level pooling (168 dimensions).} The correlation matrix is first converted into a non-negative, symmetrically-normalised $42 \times 42$ adjacency matrix (rescaling correlations from $[-1,1]$ to $[0,1]$, zeroing the diagonal, and normalising by node degree). Multiplying this adjacency matrix by the original $42 \times 42$ feature matrix yields a $42 \times 42$ aggregated matrix, in which every joint's feature profile is replaced by a degree-weighted average of its correlated neighbours. Four pooling statistics---mean, standard deviation, maximum, and minimum---are then computed across joints for each aggregated feature, contributing $42 \times 4 = 168$ descriptors.
+
+    \item \textbf{Bilateral asymmetry (22 dimensions).} The aggregated matrix is split into its left-hand and right-hand rows, and the corresponding left/right joint features are subtracted and averaged to give a 21-dimensional joint-wise asymmetry vector, together with a single global asymmetry scalar computed as the $L_2$ norm over all joint pairs. This contributes $1 + 21 = 22$ dimensions.
+
+    \item \textbf{Block correlation statistics (13 dimensions).} The adjacency matrix is partitioned into three $21 \times 21$ blocks---left-internal, right-internal, and cross-hand---and each block is summarised by its mean, standard deviation, maximum, and minimum, giving 12 block statistics, plus one further scalar recording the difference in mean edge strength between the left-internal and right-internal blocks. This contributes $12 + 1 = 13$ dimensions.
+\end{itemize}
+
+Together, the bilateral asymmetry and block correlation statistics form the 35-dimensional descriptor set of $22 + 13 = 35$ dimensions.
+
+\paragraph{Concatenated graph feature vector.}
+Concatenating the 168 pooled descriptors with the 35 asymmetry and block descriptors yields the 203-dimensional graph feature vector, which is appended to the original 1,764-dimensional bilateral kinematic feature vector to form a 1,967-dimensional extended representation per patient. Feature selection is then applied to this extended space as described in Section~\ref{sec:fs}, and the selected features are passed to the XGBoost classifier.
 
 \subsection{Adaptive Graph Convolutional Network}
 \label{sec:joint_corr_agcn}
 
-The feature-based AGCN-style model (reviewed conceptually in Section~\ref{sec:rw_agcn}) treats the bilateral feature vector as a graph over the 42 hand joints. Each joint node receives its corresponding kinematic descriptors as node features. Starting from a fixed hand-skeleton adjacency prior, the model learns an adaptive residual graph from the node features using a Mahalanobis distance and Gaussian kernel, enabling the network to capture joint relationships across both hands simultaneously. Unlike the pairwise correlation descriptor, this learned graph can express higher-order, jointly-defined inter-joint patterns.
+The feature-based AGCN-style model (reviewed conceptually in Section~\ref{sec:rw_agcn}) treats the bilateral feature vector as a graph over the 42 hand joints. Each joint node receives its corresponding kinematic descriptors as node features. Starting from a fixed hand-skeleton adjacency prior, the model learns an adaptive residual graph from the node features using a Mahalanobis distance and Gaussian kernel, enabling the network to capture joint relationships across both hands simultaneously.
 
-These two approaches form a deliberate contrast: pairwise correlation provides an interpretable hand-crafted baseline restricted to explicit bilateral joint interactions, while the AGCN-style model learns a global, data-driven relational structure from the same feature space. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.
+The two approaches in Sections~\ref{sec:joint_corr_corr} and~\ref{sec:joint_corr_agcn} form a deliberate contrast. The graph-aggregated feature descriptor constructs inter-joint structure analytically from the kinematic features using a fixed, one-step propagation rule; the resulting 203-dimensional representation is then fed into the same XGBoost pipeline as all other hand-crafted features. The AGCN-style model, by contrast, learns both the graph topology and the classification boundary end-to-end from the training data, allowing the network to discover richer, non-linear joint interactions. Their respective contributions are evaluated empirically in Experiments~4 and~5 of Chapter~\ref{chap:results}.

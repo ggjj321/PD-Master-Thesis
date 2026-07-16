@@ -9,6 +9,8 @@
 \chapter[Dataset and Experiment Setting]{Dataset and \\ Experiment Setting}
 \label{chap:setup}
 
+This chapter describes the data and the experimental protocol used throughout the thesis. Section~\ref{sec:dataset} introduces the NTUH Parkinson's Disease outpatient clinic dataset, its two temporal cohorts, the medication-status sub-groups, and the joint-major feature layout. Section~\ref{sec:roadmap} then lays out the roadmap of the five experiments, and Section~\ref{sec:exp_setting} details the evaluation protocols, fold-wise preprocessing, evaluation metrics, and model hyperparameter settings.
+
 \section{NTUH Parkinson's Disease Outpatient Clinic Dataset}
 \label{sec:dataset}
 
@@ -51,7 +53,7 @@ The detailed stage distribution of the two cohorts is shown in Table~\ref{tab:da
         \multirow{2}{*}{2020} & On  & 0   & 19 & 32 & 24 & 4 & 79  \\
                                 & Off & 134 & 13 & 27 & 16 & 1 & 191 \\
         \hline
-        \multirow{2}{*}{2025} & On  & 1   & 39 & 34 & 20 & 9 & 103 \\
+        \multirow{2}{*}{2025} & On  & 0   & 39 & 34 & 20 & 9 & 102 \\
                                 & Off & 90  & 15 & 8  & 4  & 1 & 118 \\
         \hline
     \end{tabularx}
@@ -62,41 +64,62 @@ Throughout this thesis, stage~0 is treated as the \emph{healthy} class and stage
 \subsection{Ethical Approval and Informed Consent}
 \label{sec:ethics}
 
-The clinical recordings were collected at the National Taiwan University Hospital (NTUH) Parkinson's Disease outpatient clinic under the supervision of Dr.~Lin Jing-Xian. All participants provided informed consent for the use of their de-identified hand-rotation videos for research purposes prior to recording. The data shared with the present author for analysis contain no personally identifiable information; each recording is keyed only by an internal study identifier, the recording date, the MDS-UPDRS pronation-supination score, and the on/off medication status.
+The clinical recordings were collected at the NTUH Parkinson's Disease outpatient clinic under the supervision of Dr.~Lin Jing-Xian. All participants provided informed consent for the use of their de-identified hand-rotation videos for research purposes prior to recording. The data shared with the present author for analysis contain no personally identifiable information.
 
-\subsection{Subject Composition and Patient-Identifier Granularity}
+\subsection{Subject Composition}
 \label{sec:subject_overlap}
 
-The two cohorts differ markedly in the granularity of the available patient identifier, which directly affects how cross-validation should be interpreted. In the 2025 cohort, each off-medication recording originates from a distinct internal study identifier: 118 recordings correspond to 117 unique identifiers, so leave-one-out at the recording level is effectively leave-one-subject-out. In the 2020 cohort, by contrast, the 191 off-medication recordings are grouped under only 23 internal study identifiers, with a median of 7 dates per identifier (range 1--19) and pd\_stage labels that vary across dates within the same identifier. The 2020 identifier therefore corresponds to a study-batch grouping rather than a unique human subject, and the within-cohort LOOCV protocol described in Section~\ref{sec:loocv} operates at the recording (identifier $\times$ date) level rather than at the unique-subject level. This is a known limitation of the 2020 cohort and is revisited in the discussion of LOOCV results in Chapter~\ref{chap:results}.
+Both cohorts consist of recordings from independent subjects: the 191 off-medication recordings in the 2020 cohort and the 118 off-medication recordings in the 2025 cohort each originate from a distinct individual, so leave-one-out at the recording level is equivalent to leave-one-subject-out in both cases. The two cohorts share no overlapping subjects; the 2020-to-2025 cross-cohort transfer protocol of Section~\ref{sec:cross_cohort} therefore evaluates generalisation to a strictly disjoint set of subjects recorded under a different protocol.
 
-A direct comparison of the two identifier spaces confirms that no internal study identifier appears in both the 2020 and the 2025 off-medication cohort: the intersection of the two identifier sets is empty. The 2020-to-2025 cross-cohort transfer protocol of Section~\ref{sec:cross_cohort} therefore evaluates generalisation to a strictly unseen set of recordings under a different recording protocol, even if subject-level disjointness within the 2020 cohort cannot be guaranteed.
+\subsection{Feature Dimensionality}
+\label{sec:feature_dim}
 
-\subsection{Demographic Characteristics}
-\label{sec:demographics}
+This subsection summarises how the 1,764-dimensional per-patient feature vector used throughout Chapters~\ref{chap:methods} and~\ref{chap:results} is assembled from the raw MediaPipe joint trajectories, so that the dimension counts referenced elsewhere in the thesis can be traced back to their source.
 
-Demographic and neuropsychological information was extracted from the linked NTUH de-identified clinical registry. For the 2025 off-medication cohort all 118 recordings could be matched against the registry, allowing a full demographic summary; for the 2020 off-medication cohort the smaller internal identifier space matches only a subset of the registry and demographic information is not reported in this thesis. Table~\ref{tab:demographics_2025} summarises the demographic and screening-scale characteristics of the 2025 off-medication cohort, computed at the recording level.
+Each recording yields, per hand, 21 MediaPipe joints tracked along 3 spatial axes ($x$, $y$, $z$). For every single joint-axis trajectory, two autocorrelation-based descriptors (frequency, clarity) and four amplitude representations (cycle-by-cycle, rolling peak-to-peak, rolling RMS, Hilbert envelope)---each summarised by three statistics (mean, standard deviation, median)---are computed, as detailed in Section~\ref{sec:fe}. This gives $2 + 4 \times 3 = 14$ descriptors per axis. Table~\ref{tab:feature_dim_axis} lists these 14 descriptors explicitly.
 
 \begin{table}[H]
     \centering
-    \caption{Demographic summary of the 2025 off-medication cohort (recording-level; mean $\pm$ SD where applicable)}
-    \label{tab:demographics_2025}
+    \caption{Composition of the 14 descriptors computed per joint-axis trajectory}
+    \label{tab:feature_dim_axis}
     \small
     \setlength{\tabcolsep}{8pt}
-    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.36\linewidth} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
-        \hline
-        Characteristic & Healthy ($n=90$) & PD ($n=28$) & Overall ($n=118$) \\
-        \hline
-        Age, years              & $72.9 \pm 6.9$    & $68.8 \pm 11.7$  & $71.9 \pm 8.4$ \\
-        Sex (female / male)     & 47 / 43           & 9 / 19           & 56 / 62 \\
-        Right-handed, $n$ (\%)  & --                & --               & 117 (99.2\%) \\
-        MMSE                    & --                & --               & $28.1 \pm 2.4$ (n=99) \\
-        MoCA                    & --                & --               & $26.5 \pm 3.0$ (n=86) \\
-        MDS-UPDRS Part~III      & --                & $23.5 \pm 10.5$ (n=20) & $23.5 \pm 10.5$ (n=21) \\
-        \hline
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.28\linewidth} >{\raggedright\arraybackslash}X c}
+        \toprule
+        Descriptor family & Statistics & Dimensions \\
+        \midrule
+        Frequency          & --- (single scalar)             & 1 \\
+        Clarity             & --- (single scalar)             & 1 \\
+        Cycle-by-cycle amplitude    & Mean, Std, Median      & 3 \\
+        Rolling peak-to-peak amplitude & Mean, Std, Median   & 3 \\
+        Rolling RMS amplitude       & Mean, Std, Median      & 3 \\
+        Hilbert envelope amplitude  & Mean, Std, Median      & 3 \\
+        \midrule
+        \textbf{Total per axis} & & \textbf{14} \\
+        \bottomrule
     \end{tabularx}
 \end{table}
 
-The cohort is elderly with a near-balanced sex distribution and is overwhelmingly right-handed (117 of 118 recordings; the remaining recording has an other/unspecified handedness code). The high proportion of right-handed subjects supports the use of the motor reserve hypothesis (Section~\ref{sec:rw_motor_reserve}) as an interpretive lens for the left-versus-right asymmetry reported in Chapter~\ref{chap:results}, although individual handedness was not available for the 2020 cohort and the asymmetry is therefore interpreted at the cohort level rather than per subject. MMSE and MoCA scores indicate cognitively intact participants on average, and the MDS-UPDRS Part~III score was recorded for a minority of the PD subset only.
+Since each of the 3 spatial axes ($x$, $y$, $z$) independently contributes 14 such descriptors, a single joint yields $14 \times 3 = 42$ descriptors. With 42 joints per patient (21 joints $\times$ 2 hands), the total per-patient feature dimensionality is $42 \times 42 = 1{,}764$. Table~\ref{tab:feature_dim_overall} traces this hierarchical build-up from axis to joint to patient level.
+
+\begin{table}[H]
+    \centering
+    \caption{Hierarchical composition of the 1,764-dimensional per-patient feature vector}
+    \label{tab:feature_dim_overall}
+    \small
+    \setlength{\tabcolsep}{8pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{0.30\linewidth} >{\raggedright\arraybackslash}X c}
+        \toprule
+        Level & Composition & Dimensions \\
+        \midrule
+        Per axis            & 2 autocorrelation + 4 amplitude $\times$ 3 statistics  & $2 + 4\times3 = 14$ \\
+        Per joint            & 3 axes ($x,y,z$) $\times$ 14 descriptors               & $14 \times 3 = 42$ \\
+        Per patient          & 42 joints (21 joints $\times$ 2 hands) $\times$ 42 descriptors & $42 \times 42 = 1{,}764$ \\
+        \bottomrule
+    \end{tabularx}
+\end{table}
+
+This joint-major, 42-descriptors-per-joint structure is not merely bookkeeping: it is what allows the 1,764-dimensional vector to be reshaped into a 42-node joint graph, with 42 node-level descriptors per joint, for the graph-aggregated correlation features of Section~\ref{sec:joint_corr_corr} and the feature-based AGCN-style model of Section~\ref{sec:joint_corr_agcn}.
 
 \section{Experimental Roadmap}
 \label{sec:roadmap}
@@ -109,9 +132,9 @@ Five experiments are conducted in this thesis, each motivated by a specific rese
 
 \textbf{Experiment~3} repeats the pipeline of Experiment~2 separately on left-hand-only and right-hand-only feature subsets. By comparing the classification performance of each hand independently, this experiment aims to expose asymmetric motor decline and investigate the influence of motor reserve on PD discrimination.
 
-\textbf{Experiment~4} extends the bilateral feature set by appending pairwise Pearson correlation coefficients computed between per-joint feature vectors as additional features. The same three feature-selection methods from Experiment~2 are then applied, followed by XGBoost classification, to assess whether statistically derived inter-joint motion correlation improves discriminative performance.
+\textbf{Experiment~4} extends the bilateral feature set with the 203-dimensional graph-aggregated joint-correlation descriptor described in Section~\ref{sec:joint_corr_corr}. This descriptor encodes inter-joint feature-profile similarity via a Ledoit-Wolf shrinkage correlation matrix, one step of GCN-style graph aggregation, node-level pooling, bilateral asymmetry statistics, and block-level intra/inter-hand coupling statistics. The resulting 1,967-dimensional extended feature vector is reduced by the same three feature-selection methods from Experiment~2, followed by XGBoost classification, to assess whether graph-structured inter-joint correlation improves discriminative performance.
 
-\textbf{Experiment~5} evaluates a feature-based Adaptive Graph Convolutional Network style model (AGCN-style) on the full bilateral hand-crafted feature representation. Instead of appending predefined pairwise correlation statistics, the 1,764-dimensional feature vector is reshaped into a 42-node joint graph, and the AGCN-style model learns inter-joint relationships through an adaptive adjacency mechanism, allowing the model to discover which joint interactions are most informative for PD classification while retaining the same kinematic descriptors used by the earlier feature-based experiments.
+\textbf{Experiment~5} evaluates a feature-based Adaptive Graph Convolutional Network style model (AGCN-style) on the full bilateral hand-crafted feature representation. Instead of constructing graph features analytically, the 1,764-dimensional feature vector is reshaped into a 42-node joint graph and the AGCN-style model learns both the graph topology and the classification boundary end-to-end through an adaptive adjacency mechanism, allowing the network to discover which joint interactions are most informative for PD classification while retaining the same kinematic descriptors used by the earlier experiments.
 
 \section{Experimental Setting}
 \label{sec:exp_setting}
@@ -119,7 +142,7 @@ Five experiments are conducted in this thesis, each motivated by a specific rese
 \subsection{Within-Cohort Validation}
 \label{sec:loocv}
 
-Within a single cohort, a Leave-One-Out Cross-Validation (LOOCV) protocol is employed to maximize the use of the limited clinical data. In each iteration, one subject is held out as the test sample and the remaining subjects constitute the training set. For Experiments~2--4, feature selection is re-executed on the training fold of every LOOCV iteration so that no information from the held-out subject can influence the selected feature subset. Fold-dependent preprocessing, including missing-value imputation, feature standardisation, and class-weight estimation, is likewise fit only on the training fold and then applied to the held-out subject. The out-of-fold predicted probability of each subject is stored, and the pooled probabilities are used to construct a single ROC curve per experimental configuration.
+Within a single cohort, a LOOCV protocol is employed to maximize the use of the limited clinical data. In each iteration, one subject is held out as the test sample and the remaining subjects constitute the training set. For Experiments~2--4, feature selection is re-executed on the training fold of every LOOCV iteration so that no information from the held-out subject can influence the selected feature subset. Fold-dependent preprocessing, including missing-value imputation, feature standardisation, and class-weight estimation, is likewise fit only on the training fold and then applied to the held-out subject. The out-of-fold predicted probability of each subject is stored, and the pooled probabilities are used to construct a single ROC curve per experimental configuration.
 
 \subsection{Cross-Cohort Evaluation}
 \label{sec:cross_cohort}
@@ -129,7 +152,16 @@ In addition to within-cohort LOOCV, a stricter cross-cohort transfer protocol is
 \subsection{Fold-wise Preprocessing and Normalisation}
 \label{sec:fold_preprocess}
 
-All preprocessing operations that estimate distributional quantities are nested inside the corresponding training split. In the hand-crafted feature experiments, missing numerical feature values are imputed using medians computed from the training fold or training cohort. When a standardised representation is required, \texttt{StandardScaler} is fit on the same training data and reused unchanged for the held-out fold or the 2025 test cohort. This applies to the baseline joint-feature classifiers, to the ANOVA and L1-regularised feature-selection paths, and to the feature-based AGCN-style model. XGBoost-based feature selection and final XGBoost classifiers are trained only on the corresponding training subset and do not require a separately standardised input scale. This design prevents the held-out sample or target cohort from influencing either the feature scale or the selected feature set.
+All preprocessing operations that estimate distributional quantities are nested strictly inside the corresponding training split. Specifically:
+
+\begin{itemize}
+    \item \textbf{Imputation.} Missing numerical feature values are imputed with the per-feature median computed \emph{exclusively} from the training fold (LOOCV) or the source cohort (cross-cohort transfer). The same imputation values are then applied to the held-out sample or target cohort without re-estimation.
+    \item \textbf{Standardisation.} When a standardised representation is required, \texttt{StandardScaler} is fit on the training data only and reused unchanged for the held-out fold or the 2025 test cohort. This applies to the baseline joint-feature classifiers, to the ANOVA and L1-regularised feature-selection paths, and to the feature-based AGCN-style model. XGBoost-based feature selection and final XGBoost classifiers do not require a separately standardised input scale.
+    \item \textbf{Feature selection.} For Experiments~2--4, feature selection (ANOVA, L1-logistic, or XGBoost gain) is re-executed on the training fold of every LOOCV iteration and on the source cohort for cross-cohort transfer. The indices of the selected features are then applied to the held-out or target data without re-ranking.
+    \item \textbf{Threshold selection.} The optimal classification threshold $\theta^{*}$ (Section~\ref{sec:metrics}) is estimated from training or out-of-fold predictions only; the 2025 cohort labels are never consulted during threshold selection.
+\end{itemize}
+
+This design ensures that neither the held-out sample in LOOCV nor the target cohort in cross-cohort transfer can influence the imputation values, the feature scale, the selected feature subset, or the decision threshold.
 
 For the AGCN-style model, the fold-specific standardised 1,764-dimensional vector is reshaped into a 42-node graph, with 42 descriptors assigned to each bilateral hand-joint node. Class weights for the weighted cross-entropy loss are computed from the training data of the corresponding fold or source split.
 
@@ -173,6 +205,9 @@ For \emph{cross-cohort transfer}, the operating point is estimated from the sour
 Each model family adopts a stopping criterion appropriate to its optimization procedure.
 
 \begin{itemize}
+    \setlength{\itemsep}{0pt}
+    \setlength{\parsep}{0pt}
+    \setlength{\topsep}{0pt}
     \item \textbf{Logistic Regression} converges when the change in training loss between consecutive iterations falls below a predefined tolerance.
     \item \textbf{Random Forest} and \textbf{XGBoost} are trained for a fixed number of trees and nodes, respectively, as specified in Section~\ref{sec:exp_setting_hparams}.
     \item \textbf{AGCN-style model} is trained for at most 100 epochs and uses early stopping with a patience of 20 epochs without improvement in validation loss.
@@ -219,7 +254,6 @@ Class imbalance across LOOCV folds is mitigated by rescaling the XGBoost positiv
         \hline
         Input feature dimension     & $1,764$ \\
         Graph representation        & $42$ joint nodes with $42$ descriptors per node \\
-        Adaptive graph mode         & Same-block Mahalanobis/Gaussian residual graph \\
         Hidden channel dimensions   & $\{64,\,128,\,256\}$ \\
         Dropout probability         & $0.5$ \\
         Optimizer                   & AdamW \\

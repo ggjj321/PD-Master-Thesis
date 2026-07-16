@@ -275,3 +275,8 @@ TSWLatexianTemp*
 
 exp1_rerun_20260604/
 exp234_rerun_20260603/
+
+.DS_Store
+
+*.bas
+*.pptx

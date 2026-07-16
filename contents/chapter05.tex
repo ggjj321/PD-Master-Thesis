@@ -34,8 +34,8 @@ Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performan
         \hline
         Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
         \hline
-        Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.60 / 0.56 \\
-        Random Forest       & 0.77 / 0.69 & 0.74 / 0.70 & 0.65 / 0.49 \\
+        Logistic Regression & 0.75 / 0.67 & 0.68 / 0.77 & 0.61 / 0.56 \\
+        Random Forest       & 0.77 / 0.69 & 0.74 / 0.69 & 0.65 / 0.49 \\
         XGBoost             & 0.77 / 0.61 & 0.72 / 0.71 & 0.62 / 0.41 \\
         \hline
     \end{tabularx}
@@ -51,9 +51,9 @@ Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performan
         \hline
         Model & \shortstack{AUROC\\(2020/2025)} & \shortstack{Accuracy\\(2020/2025)} & \shortstack{F1-score\\(2020/2025)} \\
         \hline
-        Logistic Regression & 0.80 / 0.66 & 0.79 / 0.76 & 0.66 / 0.48 \\
-        Random Forest       & 0.81 / 0.71 & 0.72 / 0.71 & 0.65 / 0.51 \\
-        XGBoost             & 0.77 / 0.62 & 0.74 / 0.73 & 0.61 / 0.46 \\
+        Logistic Regression & 0.81 / 0.67 & 0.79 / 0.80 & 0.67 / 0.50 \\
+        Random Forest       & 0.82 / 0.71 & 0.73 / 0.71 & 0.66 / 0.51 \\
+        XGBoost             & 0.77 / 0.62 & 0.74 / 0.73 & 0.61 / 0.47 \\
         \hline
     \end{tabularx}
 \end{table}
@@ -68,9 +68,9 @@ Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performan
         \hline
         Model & AUROC & Accuracy & F1-score \\
         \hline
-        Logistic Regression & 0.63 & 0.64 & 0.52 \\
-        Random Forest       & 0.71 & 0.80 & 0.52 \\
-        XGBoost             & 0.71 & 0.70 & 0.50 \\
+        Logistic Regression & 0.63 & 0.52 & 0.46 \\
+        Random Forest       & 0.71 & 0.51 & 0.46 \\
+        XGBoost             & 0.71 & 0.51 & 0.44 \\
         \hline
     \end{tabularx}
 \end{table}
@@ -85,9 +85,9 @@ Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performan
         \hline
         Model & AUROC & Accuracy & F1-score \\
         \hline
-        Logistic Regression & 0.50 & 0.70 & 0.40 \\
-        Random Forest       & 0.68 & 0.70 & 0.49 \\
-        XGBoost             & 0.69 & 0.62 & 0.49 \\
+        Logistic Regression & 0.51 & 0.47 & 0.34 \\
+        Random Forest       & 0.68 & 0.35 & 0.41 \\
+        XGBoost             & 0.69 & 0.46 & 0.42 \\
         \hline
     \end{tabularx}
 \end{table}
@@ -96,7 +96,7 @@ Table~\ref{tab:thumb_model_comparison} reports the within-cohort LOOCV performan
     \centering
     \begin{subfigure}[b]{0.32\textwidth}
         \includegraphics[width=\textwidth]{figures/2020_joint4.png}
-        \caption{2020 (LOOCV)}
+        \caption{2020 (LOOCV) test}
         \label{fig:thumb_roc_2020}
     \end{subfigure}
     \hfill
@@ -378,14 +378,14 @@ Tables~\ref{tab:fs_xgb_right_hand_comparison} and~\ref{tab:fs_xgb_left_hand_comp
 
 \subsection{Observation}
 
-The left-hand XGB Importance + XGBoost configuration is the strongest single-hand baseline, reaching AUROCs of $0.76$ and $0.75$ on the 2020 and 2025 cohorts respectively, with accuracies of $0.82$ and $0.81$. The advantage is most consistent for the XGB-importance selector: it outperforms the corresponding right-hand configuration in both cohorts and also yields the highest cross-cohort F1-score among single-hand models. This pattern, together with the left-heavy top-feature distribution observed in Experiment~2, is qualitatively compatible with the motor-reserve hypothesis discussed in Section~\ref{sec:rw_motor_reserve}. Because individual handedness was not recorded, the finding is interpreted as an empirical left-versus-right asymmetry rather than direct evidence that the left hand was non-dominant for all subjects.
+The left-hand XGB Importance + XGBoost configuration is the strongest single-hand baseline, reaching AUROCs of $0.76$ and $0.75$ on the 2020 and 2025 cohorts respectively, with accuracies of $0.82$ and $0.81$. The advantage is most consistent for the XGB-importance selector: it outperforms the corresponding right-hand configuration in both cohorts and also yields the highest cross-cohort F1-score among single-hand models. This pattern, together with the left-heavy top-feature distribution observed in Experiment~2, is consistent with a scenario in which the dominant hand retains more motor reserve and therefore shows less feature separation, while the non-dominant hand exhibits earlier and more detectable kinematic decline. However, this interpretation should be treated with caution. Because individual handedness was not recorded, it cannot be established that the left hand was non-dominant for the majority of subjects in either cohort. The observed asymmetry may alternatively reflect population-level differences in how PD pathology progresses across the two sides, recording-specific confounds, or the particular joints and features selected by the XGB importance method. The finding is therefore reported as an empirical left-versus-right asymmetry in feature discriminability rather than as confirmatory evidence for the motor-reserve hypothesis.
 
-\section{Experiment~4: Bilateral Features Plus Joint-Wise Correlation with Feature Selection and XGBoost}
+\section{Experiment~4: Bilateral Features Plus Graph-Aggregated Joint-Correlation Features}
 \label{sec:exp4}
 
 \subsection{Configuration}
 
-Experiment~4 evaluates whether explicit pairwise inter-joint coupling, encoded by the correlation features of Section~\ref{sec:joint_corr_corr}, adds discriminative value on top of the bilateral autocorrelation and amplitude features. The bilateral feature vector is augmented with the joint-wise pairwise correlation features, the three feature-selection strategies are then applied on the extended feature space, and XGBoost is used as the downstream classifier. Two baselines are kept for comparison: the strongest single-side model from Experiment~3 (left-hand XGB Importance) and the strongest bilateral model from Experiment~2 (bilateral XGB Importance).
+Experiment~4 evaluates whether the 203-dimensional graph-aggregated joint-correlation descriptor (Section~\ref{sec:joint_corr_corr}) adds discriminative value on top of the bilateral kinematic features. The bilateral feature vector is extended from 1,764 to 1,967 dimensions by appending the graph descriptor, which encodes inter-joint feature-profile similarity via a Ledoit-Wolf shrinkage correlation matrix, one step of GCN-style aggregation, node-level pooling statistics, bilateral asymmetry, and block-level intra/inter-hand coupling statistics. The three feature-selection strategies are then applied to reduce this extended space, and XGBoost is used as the downstream classifier. Two baselines are kept for comparison: the strongest single-side model from Experiment~3 (left-hand XGB Importance) and the strongest bilateral model from Experiment~2 (bilateral XGB Importance).
 
 \subsection{Results}
 
@@ -393,7 +393,7 @@ Table~\ref{tab:correlation_within_cohort} reports the within-cohort LOOCV perfor
 
 \begin{table}[H]
     \centering
-    \caption{Within-cohort LOOCV performance with joint-wise correlation features added to the bilateral feature set}
+    \caption{Within-cohort LOOCV performance with graph-aggregated joint-correlation features added to the bilateral feature set}
     \label{tab:correlation_within_cohort}
     \small
     \setlength{\tabcolsep}{4pt}
@@ -403,16 +403,16 @@ Table~\ref{tab:correlation_within_cohort} reports the within-cohort LOOCV perfor
         \hline
         Left-hand XGB Importance (baseline)         & 0.76 / 0.75 & 0.82 / 0.81 & 0.65 / 0.63 \\
         Bilateral XGB Importance (baseline)         & 0.74 / 0.69 & 0.78 / 0.73 & 0.60 / 0.54 \\
-        Correlation + ANOVA + XGBoost               & 0.74 / 0.61 & 0.77 / 0.63 & 0.63 / 0.44 \\
-        Correlation + L1-Logistic + XGBoost         & 0.73 / 0.55 & 0.81 / 0.60 & 0.63 / 0.42 \\
-        Correlation + XGB Importance + XGBoost      & 0.74 / 0.70 & 0.78 / 0.65 & 0.62 / 0.51 \\
+        Graph-Corr + ANOVA + XGBoost               & 0.74 / 0.61 & 0.77 / 0.63 & 0.63 / 0.44 \\
+        Graph-Corr + L1-Logistic + XGBoost         & 0.72 / 0.56 & 0.79 / 0.60 & 0.62 / 0.42 \\
+        Graph-Corr + XGB Importance + XGBoost      & 0.73 / 0.66 & 0.78 / 0.61 & 0.60 / 0.48 \\
         \hline
     \end{tabularx}
 \end{table}
 
 \begin{table}[H]
     \centering
-    \caption{Cross-cohort evaluation with joint-wise correlation features (train on 2020, test on 2025)}
+    \caption{Cross-cohort evaluation with graph-aggregated joint-correlation features (train on 2020, test on 2025)}
     \label{tab:correlation_cross_dataset}
     \small
     \setlength{\tabcolsep}{4pt}
@@ -422,16 +422,16 @@ Table~\ref{tab:correlation_within_cohort} reports the within-cohort LOOCV perfor
         \hline
         Left-hand XGB Importance (baseline)         & 0.66 & 0.65 & 0.47 \\
         Bilateral XGB Importance (baseline)         & 0.65 & 0.56 & 0.41 \\
-        Correlation + ANOVA + XGBoost               & 0.68 & 0.56 & 0.45 \\
-        Correlation + L1-Logistic + XGBoost         & 0.67 & 0.64 & 0.43 \\
-        Correlation + XGB Importance + XGBoost      & 0.68 & 0.58 & 0.45 \\
+        Graph-Corr + ANOVA + XGBoost               & 0.68 & 0.56 & 0.45 \\
+        Graph-Corr + L1-Logistic + XGBoost         & 0.65 & 0.62 & 0.44 \\
+        Graph-Corr + XGB Importance + XGBoost      & 0.67 & 0.58 & 0.45 \\
         \hline
     \end{tabularx}
 \end{table}
 
 \subsection{Observation}
 
-Adding the joint-wise pairwise correlation features does \emph{not} produce a consistent improvement over the strongest baselines. Within cohort, the best correlation-augmented configuration only matches the bilateral baseline (AUROC $0.74$) on the 2020 cohort and reaches AUROC $0.70$ on the 2025 cohort, both below the left-hand-only baseline. In the cross-cohort transfer setting, correlation-augmented configurations modestly improve the AUROC by about $0.02$--$0.03$ (from $0.65$--$0.66$ to $0.67$--$0.68$), but the gain is small and is not accompanied by a stable improvement in accuracy or F1-score. We interpret this as evidence that, once autocorrelation and amplitude descriptors are in place, additional pairwise linear couplings carry limited extra information.
+Adding the 203-dimensional graph-aggregated joint-correlation descriptor does \emph{not} produce a consistent improvement over the strongest baselines. Within cohort, the best augmented configuration only matches the bilateral baseline (AUROC $0.74$) on the 2020 cohort and reaches AUROC $0.66$ on the 2025 cohort, both below the left-hand-only baseline (AUROC $0.75$). In the cross-cohort transfer setting, the ANOVA- and XGB-based augmented configurations yield AUROC of $0.68$ and $0.67$ respectively, marginally above the two baselines ($0.65$--$0.66$), but the L1-regularised configuration ($0.65$) does not improve over the bilateral baseline. Accuracy and F1-score show no consistent gain. We interpret this as evidence that, once autocorrelation and amplitude descriptors are in place, the additional graph-structured inter-joint correlation carries limited incremental discriminative information.
 
 \section{Experiment~5: Adaptive Graph Convolutional Network}
 \label{sec:exp5}
@@ -444,7 +444,7 @@ The AGCN result is reported alongside the strongest baselines from Experiments~2
 
 \subsection{Results}
 
-Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method comparison; Table~\ref{tab:gcn_methods_2025} reports the 2025 within-cohort method comparison; and Table~\ref{tab:gcn_cross_dataset} reports the 2020-to-2025 cross-cohort transfer comparison. Figure~\ref{fig:gcn_roc_comparison} shows the corresponding ROC curves for AGCN.
+Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method comparison; Table~\ref{tab:gcn_methods_2025} reports the 2025 within-cohort method comparison; and Table~\ref{tab:gcn_cross_dataset} reports the 2020-to-2025 cross-cohort transfer comparison.
 
 \begin{table}[H]
     \centering
@@ -458,9 +458,9 @@ Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method compariso
         \hline
         Left-hand XGB Importance             & 0.76 & 0.82 & 0.65 \\
         XGB Importance                       & 0.74 & 0.78 & 0.60 \\
-        Correlation + ANOVA                  & 0.74 & 0.77 & 0.63 \\
-        Correlation + Logistic L1            & 0.73 & 0.81 & 0.63 \\
-        Correlation + XGB Importance         & 0.74 & 0.78 & 0.62 \\
+        Graph-Corr + ANOVA                   &0.74 & 0.77 & 0.63 \\
+        Graph-Corr + Logistic L1             &0.72 & 0.79 & 0.62 \\
+        Graph-Corr + XGB Importance          &0.73 & 0.78 & 0.60 \\
         AGCN                                 & 0.98 & 0.93 & 0.89 \\
         \hline
     \end{tabularx}
@@ -478,9 +478,9 @@ Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method compariso
         \hline
         Left-hand XGB Importance             & 0.75 & 0.81 & 0.63 \\
         XGB Importance                       & 0.69 & 0.73 & 0.54 \\
-        Correlation + ANOVA                  & 0.61 & 0.63 & 0.44 \\
-        Correlation + Logistic L1            & 0.55 & 0.60 & 0.42 \\
-        Correlation + XGB Importance         & 0.70 & 0.65 & 0.51 \\
+        Graph-Corr + ANOVA                   &0.61 & 0.63 & 0.44 \\
+        Graph-Corr + Logistic L1             &0.56 & 0.60 & 0.42 \\
+        Graph-Corr + XGB Importance          &0.66 & 0.61 & 0.48 \\
         AGCN                                 & 0.98 & 0.92 & 0.85 \\
         \hline
     \end{tabularx}
@@ -498,36 +498,39 @@ Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method compariso
         \hline
         Left-hand XGB Importance             & 0.66 & 0.65 & 0.47 \\
         XGB Importance                       & 0.65 & 0.56 & 0.41 \\
-        Correlation + ANOVA                  & 0.68 & 0.56 & 0.45 \\
-        Correlation + Logistic L1            & 0.67 & 0.64 & 0.43 \\
-        Correlation + XGB Importance         & 0.68 & 0.58 & 0.45 \\
+        Graph-Corr + ANOVA                   &0.68 & 0.56 & 0.45 \\
+        Graph-Corr + Logistic L1             &0.65 & 0.62 & 0.44 \\
+        Graph-Corr + XGB Importance          &0.67 & 0.58 & 0.45 \\
         AGCN                                 & 0.59 & 0.46 & 0.40 \\
         \hline
     \end{tabularx}
 \end{table}
 
-\begin{figure}[H]
+\subsection{Average Robustness of Hand-Crafted Baselines}
+\label{subsec:average_robustness}
+
+The cross-cohort AUROC in Table~\ref{tab:gcn_cross_dataset} is the strictest single deployment-oriented metric, but it captures only one aspect of robustness. To summarise stability across the full experimental setting, Table~\ref{tab:average_robustness} averages each hand-crafted baseline over the three evaluation settings: 2020 LOOCV, 2025 LOOCV, and 2020-to-2025 cross-cohort transfer. The mean AUROC, mean accuracy, and mean F1-score are computed separately across these three settings, and the overall mean is the arithmetic average of all nine reported metric values. This descriptive average is used only to identify the most balanced hand-crafted baseline; AGCN is analysed separately as the learned graph model under test.
+
+\begin{table}[H]
     \centering
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/2020_agcn.png}
-        \caption{2020 (LOOCV)}
-        \label{fig:gcn_roc_2020}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/2025_agcn.png}
-        \caption{2025 (LOOCV)}
-        \label{fig:gcn_roc_2025}
-    \end{subfigure}
-    \hfill
-    \begin{subfigure}[t]{0.32\textwidth}
-        \includegraphics[width=\textwidth]{figures/cross_agcn.png}
-        \caption{Cross-cohort}
-        \label{fig:gcn_roc_cross}
-    \end{subfigure}
-    \caption{ROC curves of AGCN under within-cohort and cross-cohort evaluation.}
-    \label{fig:gcn_roc_comparison}
-\end{figure}
+    \caption{Average robustness of hand-crafted baselines across 2020 LOOCV, 2025 LOOCV, and 2020-to-2025 cross-cohort transfer}
+    \label{tab:average_robustness}
+    \small
+    \setlength{\tabcolsep}{4pt}
+    \begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}X c c c c}
+        \hline
+        Method & Mean AUROC & Mean Accuracy & Mean F1-score & Overall mean \\
+        \hline
+        Left-hand XGB Importance             & 0.72 & 0.76 & 0.58 & 0.69 \\
+        XGB Importance                       & 0.69 & 0.69 & 0.52 & 0.63 \\
+        Graph-Corr + ANOVA                   &0.68 & 0.65 & 0.51 & 0.61 \\
+        Graph-Corr + Logistic L1             &0.64 & 0.67 & 0.49 & 0.60 \\
+        Graph-Corr + XGB Importance          &0.69 & 0.66 & 0.51 & 0.62 \\
+        \hline
+    \end{tabularx}
+\end{table}
+
+Under this average-performance definition, the left-hand XGB Importance baseline is the most robust hand-crafted configuration, with the highest overall mean ($0.69$), the highest mean accuracy ($0.76$), and the highest mean F1-score ($0.58$). Although the graph-correlation-augmented configurations reach a slightly higher cross-cohort AUROC in Table~\ref{tab:gcn_cross_dataset} ($0.68$ vs.\ $0.66$), their average accuracy and F1-score are lower. The left-hand configuration is therefore treated as the most balanced baseline across within-cohort and cross-cohort evaluation.
 
 \begin{figure}[H]
     \centering
@@ -571,12 +574,16 @@ Table~\ref{tab:gcn_methods_2020} reports the 2020 within-cohort method compariso
         \caption{Cross-cohort}
         \label{fig:gcn_rmse_cross}
     \end{subfigure}
-    \caption{RMSE curves of AGCN across training epochs.}
+    \caption{Root Mean Square Error (RMSE) curves of AGCN across training epochs.}
     \label{fig:gcn_rmse_comparison}
 \end{figure}
 
 \subsection{Observation}
 
-Within cohort, AGCN dominates every hand-crafted configuration from Experiments~2--4, reaching AUROCs of $0.98$ on both the 2020 and 2025 cohorts with accuracies of $0.92$--$0.93$ and F1-scores of $0.85$--$0.89$. This indicates that adaptive graph learning captures discriminative joint-wise motion patterns that are not fully represented by the autocorrelation, amplitude, or pairwise-correlation feature sets in earlier experiments.
+Within cohort, AGCN dominates every hand-crafted configuration from Experiments~2--4, reaching AUROCs of $0.98$ on both the 2020 and 2025 cohorts with accuracies of $0.92$--$0.93$ and F1-scores of $0.85$--$0.89$.
 
-In the cross-cohort transfer setting, however, AGCN drops to an AUROC of $0.59$, an accuracy of $0.46$, and an F1-score of $0.40$---falling behind every hand-crafted configuration in Table~\ref{tab:gcn_cross_dataset}. This sharp reversal suggests that the learned graph topology is highly dependent on the training distribution. When the recording protocol or patient population shifts from the 2020 cohort to the 2025 cohort, the graph structure learned on the source cohort does not transfer reliably, exacerbating the domain-shift problem typical of small clinical datasets.
+The loss and RMSE curves in Figs.~\ref{fig:gcn_loss_comparison} and~\ref{fig:gcn_rmse_comparison} provide important context for interpreting this result. Under LOOCV, each validation fold contains exactly one subject, so the per-fold validation loss is a single-sample measurement: when the model predicts that subject correctly the loss approaches zero, and when it fails the loss can be arbitrarily large. Averaged across all folds, both the mean training loss and the mean validation loss converge to near zero by epoch~100, and the validation RMSE likewise decays toward zero. This structural property of single-sample LOOCV means that the near-perfect within-cohort AUROC reflects the model's ability to classify each individual held-out subject after training on a near-complete cohort, rather than generalisation to a held-out distribution. The shaded variance bands further illustrate this: the 2020 cohort exhibits substantially wider per-fold variation (band spanning roughly $-2$ to $+4$ in the early epochs) than the 2025 cohort (band spanning roughly $0$ to $2$), consistent with the more heterogeneous video durations and recording conditions of the 2020 protocol relative to the standardised 30-second 2025 recordings.
+
+In the cross-cohort transfer setting, the loss curves tell a qualitatively different story. The training loss decreases monotonically from $0.73$ to $0.12$, whereas the test-cohort loss rises steadily from approximately $0.60$ at epoch~1 to $0.75$ at the point of early stopping (epoch~$\approx 27$), yielding the classic diverging pattern of overfitting. The corresponding cross-cohort RMSE does not converge but oscillates and trends upward, ending near $0.46$, indicating that the model's probability estimates on the 2025 cohort become progressively less calibrated as training continues on the 2020 source distribution. Consequently, AGCN drops to an AUROC of $0.59$, an accuracy of $0.46$, and an F1-score of $0.40$, falling behind every hand-crafted configuration in Table~\ref{tab:gcn_cross_dataset}.
+
+This sharp reversal from within-cohort to cross-cohort performance suggests that the adaptive graph topology learned from the 2020 training data may capture patterns that are specific to that cohort's distribution and do not generalise well to the 2025 recording protocol or patient population. One plausible contributing factor is that the graph adjacency is re-estimated from the node features of each training sample, so the discovered joint relationships may be sensitive to cohort-level differences in recording conditions, subject demographics, or movement characteristics; a sufficiently large distribution shift could invalidate the learned topology. Another likely factor is the small clinical dataset size, which provides limited headroom for the model to learn cohort-invariant representations: under LOOCV each fold trains on a near-complete cohort, favouring memorisation over generalisation. Taken together, these factors offer a plausible account of why AGCN underperforms the hand-crafted baselines in cross-cohort evaluation, although the relative contribution of each factor cannot be isolated from this experiment alone.
